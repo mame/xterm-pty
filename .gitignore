@@ -1,0 +1,8 @@
+/coverage
+/node_modules
+/tmp
+/out
+/dist
+/index.js*
+/index.d.ts
+/workerTools.js*

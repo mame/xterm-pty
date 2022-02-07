@@ -1,0 +1,11 @@
+/.cache
+/.parcel-cache
+/node_modules
+/dist
+/build/ncurses-*
+/build/vim*
+/build/sl-*
+/build/sloane.c
+/build/*.tar.bz2
+/build/*.tar.gz
+/static/workerTools.js
