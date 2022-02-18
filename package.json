@@ -1,7 +1,7 @@
 {
   "name": "xterm-pty",
   "description": "A pty for xterm.js and Emscripten",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "main": "index.js",
   "types": "index.d.ts",
   "repository": {
@@ -13,7 +13,7 @@
     "build": "tsc && webpack"
   },
   "files": [
-    "out"
+    "workerTools.js"
   ],
   "dependencies": {
     "xterm": "^4.16.0"
