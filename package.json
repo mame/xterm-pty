@@ -13,7 +13,10 @@
     "build": "tsc && webpack"
   },
   "files": [
-    "workerTools.js"
+    "index.d.ts",
+    "index.js.map",
+    "workerTools.js",
+    "workerTools.js.map"
   ],
   "dependencies": {
     "xterm": "^4.16.0"
