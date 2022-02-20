@@ -62,12 +62,9 @@ This will generate two files, example-core.js and example-core.wasm.
 
 ```js
 // example.worker.js
-console.log("workerTools");
 importScripts("https://cdn.jsdelivr.net/npm/xterm-pty@0.9.1/workerTools.js");
 
-console.log("workerTools");
 onmessage = (msg) => {
-  console.log("workerTools");
   importScripts(location.origin + "/example-core.js");
 
   emscriptenHack(new TtyClient(msg.data));
@@ -97,7 +94,6 @@ The helper class `TtyClient` sends TTY requests to the server that works in the 
       xterm.loadAddon(master);
 
       const worker = new Worker("./example.worker.js");
-      console.log(worker);
       new TtyServer(slave).start(worker);
     </script>
   </body>
