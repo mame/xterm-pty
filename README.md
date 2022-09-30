@@ -62,7 +62,7 @@ This will generate two files, example-core.js and example-core.wasm.
 
 ```js
 // example.worker.js
-importScripts("https://cdn.jsdelivr.net/npm/xterm-pty@0.9.1/workerTools.js");
+importScripts("https://cdn.jsdelivr.net/npm/xterm-pty@0.9.3/workerTools.js");
 
 onmessage = (msg) => {
   importScripts(location.origin + "/example-core.js");
@@ -85,7 +85,7 @@ The helper class `TtyClient` sends TTY requests to the server that works in the 
   <body>
     <div id="terminal"></div>
     <script src="https://cdn.jsdelivr.net/npm/xterm@4.17.0/lib/xterm.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-pty@0.9.1/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-pty@0.9.3/index.js"></script>
     <script>
       const xterm = new Terminal();
       xterm.open(document.getElementById("terminal"));
