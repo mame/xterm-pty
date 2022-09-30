@@ -27,14 +27,22 @@ export const emscriptenHack = (client: Client) => {
   if (self.ENV) self.ENV["TERM"] = "xterm-256color";
 
   const buf: number[] = [];
+  let flushed = true;
 
   const myGetchar = () => {
     if (buf.length == 0) {
-      buf.push(...client.onRead());
+      if (flushed) {
+        buf.push(...client.onRead());
+        flushed = false;
+      } else {
+        flushed = true;
+        return null;
+      }
     }
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const c = buf.shift()!;
-    return c >= 0 ? (c < 128 ? c : c - 256) : null;
+    return c < 128 ? c : c - 256;
   };
 
   const myPutchar = (_tty: any, val: number | null) => {
