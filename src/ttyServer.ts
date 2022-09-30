@@ -44,7 +44,7 @@ export class TtyServer {
     });
 
     slave.onReadable(() => {
-      this.toWorkerBuf.push(...slave.read(), -1);
+      this.toWorkerBuf.push(...slave.read());
 
       switch (this.state) {
         case "poll":
