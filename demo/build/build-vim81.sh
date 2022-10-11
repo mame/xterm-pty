@@ -17,7 +17,7 @@ cd $DIR
 ./configure --build=x86_64-linux-gnu --host=wasm32-unknown-emscripten --target=wasm32-unknown-emscripten --with-tlib=tinfo --with-vim-name=vim-core \
   CC=emcc CXX=emcc LD=emcc AR=emar RANLIB=emranlib STRIP=true \
   CFLAGS="-Os" \
-  LDFLAGS="-Os -sNO_EXIT_RUNTIME=1 -sFORCE_FILESYSTEM=1 -Wno-implicit-function-declaration -L$(dirname $PWD)/ncurses-6.3/usr/local/lib" \
+  LDFLAGS="-Os -sFS_DEBUG -sNO_EXIT_RUNTIME=1 -sFORCE_FILESYSTEM=1 -Wno-implicit-function-declaration -L$(dirname $PWD)/ncurses-6.3/usr/local/lib" \
   ac_cv_sizeof_int=4 \
   vim_cv_memmove_handles_overlap=yes \
   vim_cv_stat_ignores_slash=yes \
