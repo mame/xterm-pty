@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <termios.h>
+#include <emscripten.h>
 
 int main() {
     char name[256], passwd[256];
     struct termios t;
 
     puts("\e[31mH\e[32me\e[33ml\e[34ml\e[35mo\e[36m!\e[0m");
+    puts("");
+    printf("EMSCRIPTEN_VERSION: %s\n", (char*)emscripten_get_compiler_setting("EMSCRIPTEN_VERSION"));
     puts("");
     puts("This is a sample program of xterm-pty.");
     puts("You can exit this program by Ctrl+D.");
