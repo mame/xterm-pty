@@ -27,21 +27,33 @@ export const emscriptenHack = (client: Client) => {
   if (self.ENV) self.ENV["TERM"] = "xterm-256color";
 
   const buf: number[] = [];
-  let flushed = true;
+  let firstByteRead = false;
+
+  const myRead = (
+    stream: any,
+    buffer: any,
+    offset: any,
+    length: number,
+    pos: any
+  ) => {
+    firstByteRead = false;
+    return originalRead(stream, buffer, offset, length, pos);
+  };
 
   const myGetchar = () => {
     if (buf.length == 0) {
-      if (flushed) {
-        buf.push(...client.onRead());
-        flushed = false;
-      } else {
-        flushed = true;
+      if (firstByteRead) {
+        // End this read syscall as we have already read some bytes
         return null;
+      } else {
+        // Wait synchronously as we have not returned any byte yet with this read syscall
+        buf.push(...client.onRead());
       }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const c = buf.shift()!;
+    firstByteRead = true;
     return c < 128 ? c : c - 256;
   };
 
@@ -156,6 +168,8 @@ export const emscriptenHack = (client: Client) => {
     }
   };
 
+  const originalRead = self.TTY.stream_ops.read;
+  self.TTY.stream_ops.read = myRead;
   self.TTY.default_tty_ops.get_char = myGetchar;
   self.TTY.default_tty_ops.put_char = myPutchar;
   self.TTY.default_tty1_ops.put_char = myPutchar;
