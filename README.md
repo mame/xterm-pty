@@ -189,3 +189,23 @@ graph BT
         H(Emscripten runtime) -->|dirty hack| G
     end
 ```
+
+## How to build
+
+To build xterm-pty, run:
+
+```
+$ npm install && npm run build
+```
+
+To build the demo, run:
+
+```
+$ cd demo && npm install && npm run build
+```
+
+To preview the demo after editing xterm-pty, the following command is useful.
+
+```
+cd `git rev-parse --show-toplevel` && npm run build && cd demo && rm -rf node_modules/ && npm install && npm run dev
+```
