@@ -10,6 +10,7 @@ declare const self: {
   TTY: any;
   ENV: any;
   asmLibraryArg: any;
+  wasmImports: any;
   SYSCALLS: any;
   HEAP32: Int32Array;
 } & typeof globalThis;
@@ -176,22 +177,23 @@ export const emscriptenHack = (client: Client) => {
 
   self.TTY.stream_ops.poll = myPoll;
 
+  const imports = self.asmLibraryArg || self.wasmImports;
   let ioctlKey = "dummy";
   let newselectKey = "dummy";
-  for (const key in self.asmLibraryArg) {
+  for (const key in imports) {
     if (
       key == "__syscall_ioctl" ||
       key == "__sys_ioctl" ||
-      self.asmLibraryArg[key].name == "___syscall_ioctl" ||
-      self.asmLibraryArg[key].name == "___sys_ioctl"
+      imports[key].name == "___syscall_ioctl" ||
+      imports[key].name == "___sys_ioctl"
     ) {
       ioctlKey = key;
     }
     if (
       key == "__syscall_newselect" ||
       key == "__sys__newselect" ||
-      self.asmLibraryArg[key].name == "___syscall__newselect" ||
-      self.asmLibraryArg[key].name == "___sys__newselect"
+      imports[key].name == "___syscall__newselect" ||
+      imports[key].name == "___sys__newselect"
     ) {
       newselectKey = key;
     }
@@ -205,7 +207,7 @@ export const emscriptenHack = (client: Client) => {
     console.warn("failed to overwrite __syscall_newselect of emscripten");
   }
 
-  const originalIoctl = self.asmLibraryArg[ioctlKey];
-  self.asmLibraryArg[ioctlKey] = myIoctl;
-  self.asmLibraryArg[newselectKey] = myNewselect;
+  const originalIoctl = imports[ioctlKey];
+  imports[ioctlKey] = myIoctl;
+  imports[newselectKey] = myNewselect;
 };
