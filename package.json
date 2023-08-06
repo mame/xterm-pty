@@ -1,7 +1,7 @@
 {
   "name": "xterm-pty",
   "description": "A pty for xterm.js and Emscripten",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "main": "index.js",
   "types": "index.d.ts",
   "repository": {
