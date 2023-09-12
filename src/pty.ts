@@ -73,7 +73,7 @@ class Master implements ITerminalAddon {
     this.onWrite(([buf, callback]) => xterm.write(buf, callback));
 
     const onData = (str: string) =>
-      this.ldisc.writeFromLower(stringToUtf8Bytes(str));
+      this.ldisc.writeFromLower(str);
 
     this.disposables.push(
       xterm.onData(onData),
@@ -149,7 +149,7 @@ export class Slave {
 
   write(arg: string | number[]) {
     const buf = typeof arg == "string" ? stringToUtf8Bytes(arg) : arg;
-    this.fromUpperToLdiscBuffer.push(...buf);
+    this.fromUpperToLdiscBuffer = this.fromUpperToLdiscBuffer.concat(buf);
 
     if (this.ldisc.flow) {
       this.ldisc.writeFromUpper(this.fromUpperToLdiscBuffer);
