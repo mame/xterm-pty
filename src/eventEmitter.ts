@@ -2,15 +2,12 @@ type Listener<T> = (arg: T) => void;
 export type Event<T> = (listener: Listener<T>) => { dispose: () => void };
 
 export class EventEmitter<T> {
-  private listeners: Listener<T>[] = [];
+  private listeners = new Set<Listener<T>>();
 
   private _register(listener: Listener<T>) {
-    this.listeners.push(listener);
+    this.listeners.add(listener);
     return {
-      dispose: () => {
-        let index = this.listeners.indexOf(listener);
-        if (index !== -1) this.listeners.splice(index, 1);
-      },
+      dispose: () => this.listeners.delete(listener)
     };
   }
 
