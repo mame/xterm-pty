@@ -11,8 +11,8 @@ See [the demo site: https://xterm-pty.netlify.app/](https://xterm-pty.netlify.ap
 
 Install `xterm-pty` as usual.
 
-```
-$ npm i xterm-pty
+```shell
+npm i xterm-pty
 ```
 
 Use `LineDisciplineAddon.write` and `LineDisciplineAddon.onData` instead of `Terminal.write` and `Terminal.onData` of xterm.js.
@@ -38,7 +38,7 @@ slave.onReadable(() => {
 
 Result:
 
-```
+```text
 Hello, world!
 
 Input your name: Yusuke
@@ -48,164 +48,114 @@ Hi, Yusuke!
 
 ## Emscripten integration
 
+Reading user input (e.g. via functions like `fgets`) requires pausing the WebAssembly app.
+
+We can't block the main thread as that will prevent any events, including user input, from waking the application and causing the deadlock. Instead, we support two modes of asynchronous pausing via corresponding Emscripten features.
+
+### PThread proxying
+
+You can compile your application with [`-pthread -s PROXY_TO_PTHREAD`](https://emscripten.org/docs/porting/pthreads.html?highlight=proxy_to_pthread#additional-flags). In this mode Emscripten will transparently move your application to run in a pthread (in a Web Worker).
+
+xterm-pty will use [proxying](https://emscripten.org/docs/porting/pthreads.html?highlight=proxy_to_pthread#proxying) to read from and write to the Xterm.js terminal on the main thread and pause the "main" pthread until results are received.
+
+In this mode, any written content will be flushed to the screen as soon as possible, regardless of whether the proxied pthread is blocked or not, which makes it particularly useful for running applications that write content non-stop, such as the [Sloane demo](https://xterm-pty.netlify.app/#sloane-xterm).
+
+However, if your application needs direct access to DOM via [Embind](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/embind.html) or custom JavaScript, you'll need more work to proxy those operations yourself as Web Workers don't have direct access to the DOM.
+
+Also, PThreads rely on SharedArrayBuffer and atomics, which is a relatively new feature and might be not available in older browsers. It also requires that you serve your application with the cross-origin isolation headers:
+
+```http
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+See [this explainer](https://web.dev/coop-coep/) for more details on these headers.
+
+### Asyncify
+
+If you want your application running on the main thread, you can instead compile it with [`-s ASYNCIFY`](https://emscripten.org/docs/porting/asyncify.html).
+
+In this mode Emscripten will rewrite the WebAssembly application, making it behave as one large async-await function. This allows asynchronous pausing right on the main thread without actually blocking it.
+
+One downside is that it currently adds a noticeable size overhead to the resulting WebAssembly binary.
+
+Another is that, for performance reasons, we'll only automatically pause to read user input (e.g. via `fgets`) and not to flush any output, so if your application writes a lot of output non-stop like the earlier mentioned [Sloane demo](https://xterm-pty.netlify.app/#sloane-xterm), you won't see it appear on the screen until you manually pause the application with e.g. [`emscripten_sleep(0)`](https://emscripten.org/docs/porting/emscripten-runtime-environment.html?highlight=emscripten_sleep#using-asyncify-to-yield-to-the-browser).
+
+### Example
+
 Assume you want to run [example.c](https://github.com/mame/xterm-pty/blob/master/demo/build/example.c) in xterm.js.
 
-1. Compile it with Emscripten. Note that you need to specify `-sNO_EXIT_RUNTIME=1 -sFORCE_FILESYSTEM=1`.
+1. Compile it with Emscripten with either `-s ASYNCIFY` or `-s PROXY_TO_PTHREAD`.
 
-```
-emcc -sNO_EXIT_RUNTIME=1 -sFORCE_FILESYSTEM=1 -o example-core.js example.c
-```
+    Include xterm-pty's Emscripten integration library via `--js-library=[path to xterm-pty]/emscripten-pty.js`. We'll use ES6 module output as that's the easiest way to pass some options to the generated Emscripten `Module`, but feel free to use any other output format.
 
-This will generate two files, example-core.js and example-core.wasm.
+    ```shell
+    emcc -s ASYNCIFY --js-library=node_modules/xterm-pty/emscripten-pty.js -o example.mjs example.c
+    ```
 
-2. Write a Web Worker script to run example-core.js as follows.
+    This will generate two files, example.mjs and example.wasm.
 
-```js
-// example.worker.js
-importScripts("https://cdn.jsdelivr.net/npm/xterm-pty@0.9.4/workerTools.js");
+2. Write a HTML as follows.
 
-onmessage = (msg) => {
-  importScripts(location.origin + "/example-core.js");
-
-  emscriptenHack(new TtyClient(msg.data));
-};
-```
-
-The function `emscriptenHack` intercepts some syscall events like TTY read/write, `ioctl`, and `select` in the Emscripten runtime.
-The helper class `TtyClient` sends TTY requests to the server that works in the main thread (UI thread).
-
-3. Write a HTML as follows.
-
-```js
+```html
+<!DOCTYPE html>
 <html>
   <head>
-    <title>demo</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.17.0/css/xterm.css">
+    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
   </head>
   <body>
     <div id="terminal"></div>
-    <script src="https://cdn.jsdelivr.net/npm/xterm@4.17.0/lib/xterm.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-pty@0.9.4/index.js"></script>
-    <script>
-      const xterm = new Terminal();
-      xterm.open(document.getElementById("terminal"));
+    <script type="module">
+      import 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
+      import 'https://unpkg.com/xterm-pty/index.js';
+      import initEmscripten from './example.mjs';
 
+      var xterm = new Terminal();
+      xterm.open(document.getElementById('terminal'));
+
+      // Create master/slave objects
       const { master, slave } = openpty();
+
+      // Connect the master object to xterm.js
       xterm.loadAddon(master);
 
-      const worker = new Worker("./example.worker.js");
-      new TtyServer(slave).start(worker);
+      await initEmscripten({
+        pty: slave
+      });
     </script>
   </body>
 </html>
 ```
 
-It sets up xterm.js, and invokes example.worker.js as a Web Worker.
-The helper class `TtyServer` accepts TTY request from the client that works in the Web Worker.
-
-4. Serve all four files, example.html, example.worker.js, example-core.js, and example-core.wasm, with the following custom headers, and access the server with Google Chrome or Firefox.
-
-```
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
-```
-
-These headers are needed to enable `SharedArrayBuffer`. Note that you need to use Google Chrome or Firefox.
-
-Here is a minimal server script in Ruby:
-
-```rb
-require "webrick"
-
-class Server < WEBrick::HTTPServer
-  def service(req, res)
-    super
-    res["Cross-Origin-Opener-Policy"] = "same-origin"
-    res["Cross-Origin-Embedder-Policy"] = "require-corp"
-  end
-end
-
-Server.new(Port: 8080, DocumentRoot: ".").start
-```
-
 ### Caveats
 
-Currently, `emscriptenHack` rewrites the Emscripten runtime to monitor the following system events.
+Currently, Emscripten integration library patches the Emscripten runtime functions to intercept TTY access.
 
-* eead from the file descripter 0
-* write to the file descripters 1 and 2
-* ioctl for TCGETS (getting termios), TCSETS and families (setting termios), and TIOCGWINSZ (gettins window size)
-* select for TTY (waiting for stdin to be readable)
+* `fd_read` to pause on reads from the file descriptor 0
+* TTY write to stdout and stderr to redirect the output to the terminal
+* `ioctl_*` for TCGETS (getting termios), TCSETS and families (setting termios), and TIOCGWINSZ (gettins window size)
+* `poll` and `newselect` syscalls to pause while waiting for stdin to become readable
 
-The hack highly depends on the internal implementation of the Emscripten runtime.
-We confirmed that it worked on Emscripten 2.0.13, which is bundled in Ubuntu 21.10.
+It also sends terminal signals to the Emscripten'd application so that Ctrl+C for termination or terminal resizing should work as expected.
 
-Also, to use xterm-pty to run an Emscripten'ed process, you need to run it in a Web Worker.
-This is because the Emscripten runtime is written as synchronous Javascript code.
-When an Emscripten'ed process attempts to read its stdin, the runtime invokes a callback to receive input.
-The callback function is *not* `async`, but need to wait synchronously for input from xterm.js.
-To achieve this, we need to use `SharedArrayBuffer` and `Atomics.wait`.
-This is why the response header described above is needed.
-
-Unfortunately, xterm-pty does not support dynamic change of window size; you cannot use xterm-pty with xterm-addon-fit.
-We need to send SIGWINCH signal to tell an Emscripten'ed process when the terminal is resized, but Emscripten does not support signals yet.
-
-## Component flow
-
-From xterm.js to the Emscripten runtime:
-
-```mermaid
-graph TB
-    subgraph Main thread
-        A(xterm.js) -->|Terminal.onData| B[PTY Master]
-        subgraph "PTY"
-          B -->|LineDiscipline.writeFromLower| C[LineDiscipline]
-          C -->|LineDiscipline.onWriteToUpper| D[PTY Slave]
-        end
-        D -->|Slave.read| E[TtyServer]
-    end
-    subgraph Web Worker thread
-        E -->|SharedArrayBuffer| F[TtyClient]
-        F -->|TtyClient.onRead| G[emscriptenHack]
-        G -->|dirty hack| H(Emscripten runtime)
-    end
-```
-
-From the Emscripten runtime to xterm.js:
-
-```mermaid
-graph BT
-    subgraph Main thread
-        B[PTY Master] -->|Terminal.write| A(xterm.js)
-        subgraph "PTY"
-          C[LineDiscipline] -->|LineDiscipline.onWriteToLower| B
-          D[PTY Slave] -->|LineDiscipline.writeFromUpper| C
-        end
-        E[TtyServer] -->|Slave.write| D
-    end
-    subgraph Web Worker thread
-        F[TtyClient] -->|Worker.postMessage| E
-        G[emscriptenHack] -->|TtyClient.onWrite| F
-        H(Emscripten runtime) -->|dirty hack| G
-    end
-```
+The integration hack highly depends on the internal implementation of the Emscripten runtime. It's confirmed to work with Emscripten 3.1.47, which can be installed via `emsdk install 3.1.47`.
 
 ## How to build
 
 To build xterm-pty, run:
 
-```
-$ npm install && npm run build
+```shell
+npm install && npm run build
 ```
 
 To build the demo, run:
 
-```
-$ cd demo && npm install && npm run build
+```shell
+cd demo && npm install && npm run build
 ```
 
 To preview the demo after editing xterm-pty, the following command is useful.
 
-```
+```shell
 cd `git rev-parse --show-toplevel` && npm run build && cd demo && rm -rf node_modules/ && npm install && npm run dev
 ```

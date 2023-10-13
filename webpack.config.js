@@ -4,7 +4,6 @@ const DtsBundleWebpack = require("dts-bundle-webpack");
 module.exports = {
   entry: {
     index: "./out/index.js",
-    workerTools: "./out/workerTools.js",
   },
   devtool: "source-map",
   module: {

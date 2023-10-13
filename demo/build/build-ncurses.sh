@@ -14,7 +14,17 @@ if [ ! -e $DIR ]; then
 fi
 
 tar xf ncurses-6.3.tar.gz
-cd ncurses-6.3
-./configure --build x86_64-linux-gnu --host wasm32-unknown-emscripten --disable-stripping --with-install-prefix=$PWD --without-ada -with-termlib \
-  CC=emcc CXX=emcc LD=emcc AR=emar RANLIB=emranlib
-make install
+cd $DIR
+emconfigure ./configure --build=x86_64-linux-gnu --host=wasm32-unknown-emscripten \
+  --with-install-prefix=$PWD \
+  --without-ada \
+  --without-manpages \
+  --without-progs \
+  --without-tests \
+  --with-termlib
+make install -j`nproc`
+
+$(dirname $(which emcc))/tools/file_packager \
+  ../../static/ncurses.fs.data \
+  --js-output=../../static/ncurses.fs.js \
+  --preload usr/local/share/terminfo/x/xterm-256color@/usr/local/share/terminfo/x/xterm-256color

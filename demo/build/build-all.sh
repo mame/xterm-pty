@@ -2,12 +2,10 @@
 
 set -ex
 
-bash build-example.sh
+./build-example.sh
+./build-sloane.sh
 
-bash build-sloane.sh
+./build-ncurses.sh
 
-bash build-ncurses.sh
-bash build-vim81.sh
-bash build-sl.sh
-
-ruby build-fs.rb
+./build-vim81.sh
+./build-sl.sh

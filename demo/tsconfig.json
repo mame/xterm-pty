@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "allowJs": true,
         "noImplicitAny": true,
         "module": "es2020",
         "target": "es5",
@@ -9,9 +10,7 @@
         "declaration": true,
         "sourceMap": true,
         "outDir": "./out/",
-        "rootDir": "./src/",
         "baseUrl": ".",
     },
-    "include": ["./src/", "./typings/"],
-    "exclude": ["../node_modules/"],
+    "include": ["./src/", "./static/*-core.js"]
 }

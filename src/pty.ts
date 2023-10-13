@@ -24,7 +24,7 @@
 import { Terminal, ITerminalAddon, IDisposable } from "xterm";
 import { EventEmitter } from "./eventEmitter";
 import { LineDiscipline } from "./lineDiscipline";
-import { Termios } from "./termios";
+import { Termios, TermiosConfig } from "./termios";
 import { stringToUtf8Bytes } from "./utils";
 
 export type Signal = "SIGINT" | "SIGQUIT" | "SIGTSTP" | "SIGWINCH";
@@ -158,17 +158,17 @@ export class Slave {
   }
 
   ioctl(req: "TCGETS"): Termios;
-  ioctl(req: "TCSETS", arg: Termios): void;
+  ioctl(req: "TCSETS", arg: TermiosConfig): void;
   ioctl(req: "TIOCGWINSZ"): [number, number];
   ioctl(req: "TCGETS" | "TCSETS" | "TIOCGWINSZ", arg?: any) {
     switch (req) {
       case "TCGETS":
         return this.ldisc.termios.clone();
       case "TCSETS":
-        this.ldisc.termios = arg as Termios;
+        this.ldisc.termios = Termios.fromConfig(arg);
         return;
       case "TIOCGWINSZ":
-        return this.winsize;
+        return this.winsize.slice();
     }
   }
 }

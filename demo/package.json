@@ -2,8 +2,8 @@
     "name": "xterm-pty-demo",
     "description": "Demo programs for xterm-pty",
     "scripts": {
-        "build": "cp node_modules/xterm-pty/workerTools.js static && parcel build src/*.html",
-        "dev": "cp node_modules/xterm-pty/workerTools.js static && parcel src/*.html"
+        "build": "parcel build src/*.html",
+        "dev": "parcel src/*.html"
     },
     "dependencies": {
         "xterm": "^4.17.0",
@@ -17,6 +17,7 @@
         "parcel": "^2.2.1",
         "parcel-reporter-static-files-copy": "^1.3.4",
         "prettier": "^2.5.1",
+        "process": "^0.11.10",
         "typescript": "^4.5.5"
     }
 }
