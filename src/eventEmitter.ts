@@ -7,7 +7,9 @@ export class EventEmitter<T> {
   private _register(listener: Listener<T>) {
     this.listeners.add(listener);
     return {
-      dispose: () => this.listeners.delete(listener)
+      dispose: () => {
+        this.listeners.delete(listener);
+      }
     };
   }
 
