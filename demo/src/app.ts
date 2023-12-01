@@ -10,7 +10,8 @@ if (vimDiv) vimXterm.open(vimDiv);
 const { master, slave } = openpty();
 vimXterm.loadAddon(master);
 
-const links: { [key: string]: HTMLAnchorElement } = {};
+const links = new Map();
+const files = document.getElementById("files")!;
 const vimWorker = new Worker(new URL("vim.worker.ts", import.meta.url));
 
 new TtyServer(slave).start(vimWorker, (msg) => {
@@ -19,19 +20,21 @@ new TtyServer(slave).start(vimWorker, (msg) => {
       vimXterm.write(`\r${msg.data.message}\x1b[0K`);
       break;
     case "file": {
-      const path: string = msg.data.path;
-      const blob = new Blob([msg.data.data], { type: "text/plain" });
-      const url = window.URL.createObjectURL(blob);
-      if (path in links) {
-        links[path].href = url;
-      } else {
-        const a = document.createElement("a");
+      const { path, data } = msg.data;
+      const blob = new Blob([data], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      let a = links.get(path);
+      if (a) {
+        URL.revokeObjectURL(a.href);
         a.href = url;
-        a.download = path.split("/").pop() || "dummy.txt";
-        a.innerText = path;
-        links[path] = a;
-        const files = document.getElementById("files");
-        files?.appendChild(a);
+      } else {
+        a = Object.assign(document.createElement("a"), {
+          href: url,
+          download: path.split("/").pop() || "dummy.txt",
+          textContent: path,
+        });
+        links.set(path, a);
+        files.appendChild(a);
       }
       break;
     }
