@@ -1,7 +1,11 @@
 import { LineDiscipline } from "./lineDiscipline";
 import { Signal } from "./pty";
 import { Termios } from "./termios";
-import { NL, CR, utf8BytesToString } from "./utils";
+import { NL, CR } from "./utils";
+
+const utf8Decoder = new TextDecoder();
+
+const utf8BytesToString = (buf: number[]) => utf8Decoder.decode(new Uint8Array(buf));
 
 const checkWithSignals = (
   expectedLowerBuf: string | number[],
@@ -21,17 +25,15 @@ const checkWithSignals = (
   block(ldisc);
 
   if (typeof expectedLowerBuf == "string") {
-    const [lowerStr, lowerRestBuf] = utf8BytesToString(lowerBuf);
+    const lowerStr = utf8BytesToString(lowerBuf);
     expect(JSON.stringify(lowerStr)).toBe(JSON.stringify(expectedLowerBuf));
-    expect(lowerRestBuf).toEqual([]);
   } else {
     expect(lowerBuf).toEqual(expectedLowerBuf);
   }
 
   if (typeof expectedUpperBuf == "string") {
-    const [upperStr, upperRestBuf] = utf8BytesToString(upperBuf);
+    const upperStr = utf8BytesToString(upperBuf);
     expect(JSON.stringify(upperStr)).toBe(JSON.stringify(expectedUpperBuf));
-    expect(upperRestBuf).toEqual([]);
   } else {
     expect(upperBuf).toEqual(expectedUpperBuf);
   }
