@@ -44,12 +44,12 @@ function ifPThread(name, implPThread, implMainThread) {
     };
 }
 
-// Rename fd_read and its config to internal $old_fd_read - we're going to wrap it.
-renameFuncKeys('fd_read', '$old_fd_read');
+// Rename fd_read and its config to internal $xterm_pty_old_fd_read - we're going to wrap it.
+renameFuncKeys('fd_read', '$xterm_pty_old_fd_read');
 
 // Same for __syscall__newselect and __syscall_poll.
-renameFuncKeys('__syscall__newselect', '$old___syscall__newselect');
-renameFuncKeys('__syscall_poll', '$old___syscall__poll');
+renameFuncKeys('__syscall__newselect', '$xterm_pty_old_newselect');
+renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
 
 // Remove FS_stdin_getChar, its config and buffer altogether - we're going to implement higher-level bulk reading.
 deleteFuncKeys('$FS_stdin_getChar');
@@ -143,16 +143,16 @@ Object.assign(Lib, {
     ...ifPThread('$PTY_handleSleep', 'PTY_handleSleepWithAtomic', 'Asyncify.handleSleep'),
     ...ifPThread('$PTY_waitForReadable', 'PTY_waitForReadableWithAtomic', 'PTY_waitForReadableWithCallback'),
 
-    fd_read__deps: ['$PTY_handleSleep', '$PTY_waitForReadable', '$old_fd_read'],
+    fd_read__deps: ['$PTY_handleSleep', '$PTY_waitForReadable', '$xterm_pty_old_fd_read'],
     // Note: intentionally using handleSleep instead of handleAsync as it can avoid pausing Wasm
     // when fd_read is invoked on non-TTY FDs, while Promises always pause.
     fd_read: (fd, iov, iovcnt, pnum) => PTY_handleSleep((wakeUp) => {
-        let result = old_fd_read(fd, iov, iovcnt, pnum);
+        let result = xterm_pty_old_fd_read(fd, iov, iovcnt, pnum);
         // Did this call return our variant of EAGAIN?
         // If so, that means it called into the PTY and the buffer was empty.
         if (result === {{{ 1000 + cDefs.EAGAIN }}}) {
             // Wait for the PTY to become readable and try again.
-            PTY_waitForReadable(() => wakeUp(old_fd_read(fd, iov, iovcnt, pnum)));
+            PTY_waitForReadable(() => wakeUp(xterm_pty_old_fd_read(fd, iov, iovcnt, pnum)));
         } else {
             wakeUp(result);
         }
@@ -174,16 +174,16 @@ Object.assign(Lib, {
         }
     }),
 
-    __syscall__newselect__deps: ['$old___syscall__newselect', '$PTY_wrapPoll'],
+    __syscall__newselect__deps: ['$xterm_pty_old_newselect', '$PTY_wrapPoll'],
     __syscall__newselect: (nfds, readfds, writefds, exceptfds, timeout) => (
-        PTY_wrapPoll(() => old___syscall__newselect(nfds, readfds, writefds, exceptfds, timeout))
+        PTY_wrapPoll(() => xterm_pty_old_newselect(nfds, readfds, writefds, exceptfds, timeout))
     ),
 #if !PROXY_TO_PTHREAD
     __syscall__newselect__async: true,
 #endif
 
-    __syscall_poll__deps: ['$old___syscall__poll', '$PTY_wrapPoll'],
-    __syscall_poll: (fds, nfds, timeout) => PTY_wrapPoll(() => old___syscall__poll(fds, nfds, timeout)),
+    __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_wrapPoll'],
+    __syscall_poll: (fds, nfds, timeout) => PTY_wrapPoll(() => xterm_pty_old_poll(fds, nfds, timeout)),
 #if !PROXY_TO_PTHREAD
     __syscall_poll__async: true,
 #endif
