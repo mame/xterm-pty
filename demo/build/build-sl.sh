@@ -16,9 +16,10 @@ fi
 tar xzf $FILE
 emcc \
   -Os \
-  -s ASYNCIFY \
+  -pthread \
+  -s PROXY_TO_PTHREAD \
   -s EXPORT_ES6 \
-  -s ENVIRONMENT=web \
+  -s ENVIRONMENT=web,worker \
   --js-library ../../emscripten-pty.js \
   -s FORCE_FILESYSTEM \
   --pre-js ../static/ncurses.fs.js \
