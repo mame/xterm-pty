@@ -15,8 +15,7 @@
   "files": [
     "index.d.ts",
     "index.js.map",
-    "workerTools.js",
-    "workerTools.js.map"
+    "emscripten-pty.js"
   ],
   "dependencies": {
     "xterm": "^4.16.0"

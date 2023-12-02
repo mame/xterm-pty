@@ -2,4 +2,11 @@
 
 set -ex
 
-emcc -sNO_EXIT_RUNTIME=0 -sFORCE_FILESYSTEM=1 -o ../static/example-core.js example.c
+emcc \
+	-Os \
+	-s ASYNCIFY \
+	-s EXPORT_ES6 \
+	-s ENVIRONMENT=web \
+	--js-library ../../emscripten-pty.js \
+	-o ../static/example-core.js \
+	example.c

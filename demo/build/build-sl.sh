@@ -14,5 +14,18 @@ if [ ! -e $DIR ]; then
 fi
 
 tar xzf $FILE
-cd sl-5.02
-emcc -sNO_EXIT_RUNTIME=0 -sFORCE_FILESYSTEM=1 -o ../../static/sl-core.js sl.c -I$(dirname $PWD)/ncurses-6.3/usr/local/include -I$(dirname $PWD)/ncurses-6.3/usr/local/include/ncurses -L$(dirname $PWD)/ncurses-6.3/usr/local/lib -lncurses -ltinfo
+emcc \
+  -Os \
+  -s ASYNCIFY \
+  -s EXPORT_ES6 \
+  -s ENVIRONMENT=web \
+  --js-library ../../emscripten-pty.js \
+  -s FORCE_FILESYSTEM \
+  --pre-js ../static/ncurses.fs.js \
+  -o ../static/sl-core.js \
+  $DIR/sl.c \
+  -Incurses-6.3/usr/local/include \
+  -Incurses-6.3/usr/local/include/ncurses \
+  -Lncurses-6.3/usr/local/lib \
+  -lncurses \
+  -ltinfo

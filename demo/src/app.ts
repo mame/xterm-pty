@@ -1,91 +1,76 @@
 import { Terminal } from "xterm";
-import { openpty, TtyServer } from "xterm-pty";
+import { openpty } from "xterm-pty";
 import "xterm/css/xterm.css";
 
 // vim
-const vimXterm = new Terminal();
-const vimDiv = document.getElementById("vim-xterm");
-if (vimDiv) vimXterm.open(vimDiv);
+(async() => {
+  const vimXterm = new Terminal();
+  const vimDiv = document.getElementById("vim-xterm");
+  if (vimDiv) vimXterm.open(vimDiv);
 
-const { master, slave } = openpty();
-vimXterm.loadAddon(master);
+  const { master, slave } = openpty();
+  vimXterm.loadAddon(master);
 
-const links = new Map();
-const files = document.getElementById("files")!;
-const vimWorker = new Worker(new URL("vim.worker.ts", import.meta.url));
+  const { default: initEmscripten } = await import("../static/vim-core.js");
+  const module = await initEmscripten({
+    pty: slave,
+  });
 
-new TtyServer(slave).start(vimWorker, (msg) => {
-  switch (msg.data.type) {
-    case "status":
-      vimXterm.write(`\r${msg.data.message}\x1b[0K`);
-      break;
-    case "file": {
-      const { path, data } = msg.data;
-      const blob = new Blob([data], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      let a = links.get(path);
-      if (a) {
-        URL.revokeObjectURL(a.href);
-        a.href = url;
-      } else {
-        a = Object.assign(document.createElement("a"), {
-          href: url,
-          download: path.split("/").pop() || "dummy.txt",
-          textContent: path,
-        });
-        links.set(path, a);
-        files.appendChild(a);
-      }
-      break;
+  const links = new Map();
+  const files = document.getElementById("files")!;
+
+  module.FS.trackingDelegate["onWriteToFile"] = (path: string) => {
+    if (!path.startsWith("/home/web_user/") || path.endsWith(".swp")) {
+      return;
     }
-  }
-});
+    const data = module.FS.readFile(path);
+    const blob = new Blob([data], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    let a = links.get(path);
+    if (a) {
+      URL.revokeObjectURL(a.href);
+      a.href = url;
+    } else {
+      a = Object.assign(document.createElement("a"), {
+        href: url,
+        download: path.split("/").pop() || "dummy.txt",
+        textContent: path,
+      });
+      links.set(path, a);
+      files.appendChild(a);
+    }
+  };
+})();
 
-const entry = (id: string, invokeWorker: () => Worker) => {
+const entry = (id: string, loadJS: () => Promise<any>) => {
   const xterm = new Terminal();
   const div = document.getElementById(id + "-xterm");
   if (div) xterm.open(div);
   const { master, slave } = openpty();
   xterm.loadAddon(master);
   const button = document.getElementById(id + "-run") as HTMLButtonElement;
-  let worker: Worker | null = null;
-  const ttyServer = new TtyServer(slave);
-  const invoke = () => {
+  let module: any;
+  const invoke = async () => {
     xterm.clear();
-    button.innerText = "Terminate";
-    button.onclick = terminate;
-    worker = invokeWorker();
-    ttyServer.start(worker, (msg: MessageEvent<any>) => {
-      switch (msg.data.type) {
-        case "status":
-          xterm.write(`\r${msg.data.message}\x1b[0K`);
-          break;
-        case "exit":
-          terminate();
-          break;
-      }
+    button.disabled = true;
+    const { default: initEmscripten } = await loadJS();
+    module = await initEmscripten({
+      pty: slave,
+      onExit: () => {
+        module = undefined;
+        button.disabled = false;
+        xterm.clear();
+        xterm.write("\r[Terminated. Push the 'Run' button to restart it.]\r\n");
+      },
     });
-  };
-  const terminate = () => {
-    button.innerText = "Run";
-    button.onclick = invoke;
-    if (worker) worker.terminate();
-    ttyServer.stop();
-    xterm.write("\x1b[2J[Terminated. Push the 'Run' button to restart it.]");
   };
   button.onclick = invoke;
 };
 
 // As "new Worker(...)" is an idiom to allow parcel to track dependency,
 // we need to write them literally
-entry("example", () => {
-  return new Worker(new URL("example.worker.ts", import.meta.url));
-});
+entry("example", () => import("../static/example-core.js"));
 
-entry("sl", () => {
-  return new Worker(new URL("sl.worker.ts", import.meta.url));
-});
+entry("sl", () => import("../static/sl-core.js"));
 
-entry("sloane", () => {
-  return new Worker(new URL("sloane.worker.ts", import.meta.url));
-});
+entry("sloane", () => import("../static/sloane-core.js"));

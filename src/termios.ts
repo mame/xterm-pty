@@ -57,13 +57,21 @@ const enum Flags {
   VEOL2 = 16
 }
 
-export class Termios {
+export interface TermiosConfig {
+  readonly iflag: number;
+  readonly oflag: number;
+  readonly cflag: number;
+  readonly lflag: number;
+  readonly cc: ReadonlyArray<number>;
+}
+
+export class Termios implements TermiosConfig {
   constructor(
     readonly iflag: number,
     readonly oflag: number,
     readonly cflag: number,
     readonly lflag: number,
-    readonly cc: number[]
+    readonly cc: ReadonlyArray<number>
   ) {}
 
   readonly ISTRIP_P = (this.iflag & Flags.ISTRIP) != 0;
@@ -111,14 +119,18 @@ export class Termios {
   readonly LNEXT_V = this.cc[Flags.VLNEXT];
   readonly EOL2_V = this.cc[Flags.VEOL2];
 
-  clone() {
+  static fromConfig(config: TermiosConfig) {
     return new Termios(
-      this.iflag,
-      this.oflag,
-      this.cflag,
-      this.lflag,
-      this.cc.concat()
+      config.iflag,
+      config.oflag,
+      config.cflag,
+      config.lflag,
+      config.cc
     );
+  }
+
+  clone() {
+    return Termios.fromConfig(this);
   }
 }
 
@@ -140,36 +152,3 @@ export const defaultTermios = new Termios(
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
   ]
 );
-
-export const termiosToData = (termios: Termios) => {
-  const data = [termios.iflag, termios.oflag, termios.cflag, termios.lflag];
-  let word = 0;
-  let offset = 8;
-  for (let i = 0; i < termios.cc.length; i++) {
-    word |= termios.cc[i] << offset;
-    offset += 8;
-    if (offset == 32) {
-      data.push(word);
-      word = 0;
-      offset = 0;
-    }
-  }
-  data.push(word);
-  return data;
-};
-
-export const dataToTermios = (data: number[]): Termios => {
-  const cc: number[] = [];
-  let ptr = 4;
-  let word = data[ptr++];
-  let offset = 8;
-  for (let i = 0; i < 32; i++) {
-    cc.push((word >> offset) & 0xff);
-    offset += 8;
-    if (offset >= 32) {
-      word = data[ptr++];
-      offset = 0;
-    }
-  }
-  return new Termios(data[0], data[1], data[2], data[3], cc);
-};
