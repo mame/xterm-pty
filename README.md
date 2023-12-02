@@ -140,6 +140,38 @@ It also sends terminal signals to the Emscripten'd application so that Ctrl+C fo
 
 The integration hack highly depends on the internal implementation of the Emscripten runtime. It's confirmed to work with Emscripten 3.1.47, which can be installed via `emsdk install 3.1.47`.
 
+## Typical data flow
+
+From xterm.js to the Emscripten runtime:
+
+```mermaid
+graph TB
+  A(xterm.js) -->|Terminal.onData| B[PTY Master]
+  subgraph "PTY"
+    B -->|LineDiscipline.writeFromLower| C[LineDiscipline]
+    C -->|LineDiscipline.onWriteToUpper| D[PTY Slave]
+  end
+  subgraph "emcc-generated code"
+    D -->|Slave.read| E[emscripten-pty.js]
+    E -->|overridden read syscall| F[Emscripten runtime]
+  end
+```
+
+From the Emscripten runtime to xterm.js:
+
+```mermaid
+graph BT
+  B[PTY Master] -->|Terminal.write| A(xterm.js)
+  subgraph "PTY"
+    C[LineDiscipline] -->|LineDiscipline.onWriteToLower| B
+    D[PTY Slave] -->|LineDiscipline.writeFromUpper| C
+  end
+  subgraph "emcc-generated code"
+    E[emscripten-pty.js] -->|Slave.write| D
+    F[Emscripten runtime] -->|overridden write syscall| E
+  end
+```
+
 ## How to build
 
 To build xterm-pty, run:
