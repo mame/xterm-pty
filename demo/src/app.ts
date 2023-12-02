@@ -5,6 +5,7 @@ import "xterm/css/xterm.css";
 // vim
 (async() => {
   const vimXterm = new Terminal();
+  const vimStatus = document.getElementById("vim-status");
   const vimDiv = document.getElementById("vim-xterm");
   if (vimDiv) vimXterm.open(vimDiv);
 
@@ -14,6 +15,10 @@ import "xterm/css/xterm.css";
   const { default: initEmscripten } = await import("../static/vim-core.js");
   const module = await initEmscripten({
     pty: slave,
+    setStatus: (s) => { vimStatus.innerText = s ? s : "Ready"; },
+    onExit: () => {
+      status.innerText = "Terminated";
+    },
   });
 
   const links = new Map();
@@ -44,6 +49,7 @@ import "xterm/css/xterm.css";
 
 const entry = (id: string, loadJS: () => Promise<any>) => {
   const xterm = new Terminal();
+  const status = document.getElementById(id + "-status");
   const div = document.getElementById(id + "-xterm");
   if (div) xterm.open(div);
   const { master, slave } = openpty();
@@ -56,9 +62,11 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
     const { default: initEmscripten } = await loadJS();
     module = await initEmscripten({
       pty: slave,
+      setStatus: (s) => { status.innerText = s ? s : "Ready"; },
       onExit: () => {
         module = undefined;
         button.disabled = false;
+	status.innerText = "Terminated";
         xterm.clear();
         xterm.write("\r[Terminated. Push the 'Run' button to restart it.]\r\n");
       },
@@ -67,8 +75,6 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
   button.onclick = invoke;
 };
 
-// As "new Worker(...)" is an idiom to allow parcel to track dependency,
-// we need to write them literally
 entry("example", () => import("../static/example-core.js"));
 
 entry("sl", () => import("../static/sl-core.js"));
