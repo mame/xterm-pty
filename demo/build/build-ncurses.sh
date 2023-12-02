@@ -2,8 +2,8 @@
 
 set -ex
 
-FILE=ncurses-6.3.tar.gz
-DIR=ncurses-6.3
+FILE=ncurses-6.4.tar.gz
+DIR=ncurses-6.4
 
 if [ ! -e $FILE ]; then
   wget https://invisible-mirror.net/archives/ncurses/$FILE

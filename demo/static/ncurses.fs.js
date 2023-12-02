@@ -178,6 +178,6 @@ Module['FS_createPath']("/usr/local/share/terminfo", "x", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/usr/local/share/terminfo/x/xterm-256color", "start": 0, "end": 3852}], "remote_package_size": 3852});
+    loadPackage({"files": [{"filename": "/usr/local/share/terminfo/x/xterm-256color", "start": 0, "end": 3912}], "remote_package_size": 3912});
 
   })();
