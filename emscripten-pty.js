@@ -89,20 +89,28 @@ Object.assign(Lib, {
         if (PTY_pollTimeout === 0) {
             return callback(PTY.readable);
         }
-        let handler, timeoutId;
+        let handlerReadable, handlerSignal, timeoutId;
         new Promise((resolve) => {
-            handler = PTY.onReadable(() => resolve(true));
+            handlerReadable = PTY.onReadable(() => resolve(0 /* ready */));
+
+            // We need to stop select(2) when a signal is caught.
+            //
+            // TODO: In fact, it should be stopped "when a signal handler is called," not "a the signal is received."
+            // If the signal handler is set as SIG_IGN, select(2) should not be stopped.
+            handlerSignal = PTY.onSignal(() => resolve(1 /* interrupted */));
+
             if (PTY_pollTimeout >= 0) {
                 // if negative timeout, don't stop early (in poll-like functions it means infinite wait),
                 // otherwise wait specified number of ms.
-                timeoutId = setTimeout(resolve, PTY_pollTimeout, false);
+                timeoutId = setTimeout(resolve, PTY_pollTimeout, 2 /* timeout */);
             }
         })
-        .then(ok => {
-            handler.dispose();
+        .then(type => {
+            handlerReadable.dispose();
+            handlerSignal.dispose();
             // note: it's fine to call even with undefined timeoutId
             clearTimeout(timeoutId);
-            callback(ok);
+            callback(type);
         });
     },
 
@@ -115,8 +123,8 @@ Object.assign(Lib, {
 
     $PTY_waitForReadableWithAtomicImpl__deps: ['$PTY_waitForReadableWithCallback'],
     $PTY_waitForReadableWithAtomicImpl: (atomicIndex) => {
-        PTY_waitForReadableWithCallback(ok => {
-            Atomics.store(HEAP32, atomicIndex, ok);
+        PTY_waitForReadableWithCallback(type => {
+            Atomics.store(HEAP32, atomicIndex, type);
             Atomics.notify(HEAP32, atomicIndex);
         });
     },
@@ -132,7 +140,7 @@ Object.assign(Lib, {
         HEAP32[PTY_atomicIndex] = -1;
         PTY_waitForReadableWithAtomicImpl(PTY_atomicIndex);
         Atomics.wait(HEAP32, PTY_atomicIndex, -1);
-        callback(!!HEAP32[PTY_atomicIndex]);
+        callback(HEAP32[PTY_atomicIndex]);
     },
 #endif
 
@@ -168,7 +176,20 @@ Object.assign(Lib, {
         // If so, that means it called into the PTY and the buffer was empty.
         if (result === -{{{ 1000 + cDefs.EAGAIN }}}) {
             // Wait for the PTY to become readable and try again.
-            PTY_waitForReadable(ok => wakeUp(ok ? impl() : 0));
+            PTY_waitForReadable(type => {
+                console.log(type);
+                switch (type) {
+                    case 0: /* ready */
+                        wakeUp(impl());
+                        break;
+                    case 1: /* interrupted */
+                        wakeUp(-{{{ cDefs.EINTR }}});
+                        break;
+                    case 2: /* timeout */
+                        wakeUp(0);
+                        break;
+                }
+            });
         } else {
             wakeUp(result);
         }
