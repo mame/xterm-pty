@@ -7,5 +7,5 @@ set -ex
 
 ./build-ncurses.sh
 
-./build-vim81.sh
+./build-vim90.sh
 ./build-sl.sh

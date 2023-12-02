@@ -2,8 +2,8 @@
 
 set -ex
 
-FILE=vim-8.1.tar.bz2
-DIR=vim81
+FILE=vim-9.0.tar.bz2
+DIR=vim90
 
 if [ ! -e $FILE ]; then
   wget ftp://ftp.vim.org/pub/vim/unix/$FILE
@@ -46,7 +46,6 @@ sed -i "/HAVE_SYSINFO/d" src/auto/config.h
 sed -i "/HAVE_GETRLIMIT/d" src/auto/config.h
 sed -i "/HAVE_GETTEXT/d" src/auto/config.h
 sed -i "/HAVE_GETPWUID/d" src/auto/config.h
-patch -p0 < ../wasm-vim81.patch
 make install DESTDIR=$PWD -j`nproc`
 # This is somewhat annoying but we need to get files from /usr/local/share when we link the binary,
 # and `install` sometimes builds the binary before they're ready.
@@ -56,9 +55,9 @@ make -C src vim-core LDFLAGS="\
   $CONFIG_LDFLAGS \
   -s FORCE_FILESYSTEM \
   --pre-js $SCRIPT_DIR/../static/ncurses.fs.js \
-  --preload-file $PWD/usr/local/share/vim/vim81@/usr/local/share/vim/vim81 \
-  --exclude-file $PWD/usr/local/share/vim/vim81/lang \
-  --exclude-file $PWD/usr/local/share/vim/vim81/doc \
+  --preload-file $PWD/usr/local/share/vim/vim90@/usr/local/share/vim/vim90 \
+  --exclude-file $PWD/usr/local/share/vim/vim90/lang \
+  --exclude-file $PWD/usr/local/share/vim/vim90/doc \
   -s EXPORTED_RUNTIME_METHODS=FS \
 "
 
