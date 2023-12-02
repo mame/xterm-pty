@@ -44,6 +44,7 @@
           <a href="https://github.com/xtermjs/xterm.js/">xterm.js</a>.
           We have confirmed that it works with Google Chrome 98 and Firefox 97.
         </p>
+	<p>Loading status: <span id="vim-status">Not loaded</span></p>
         <div id="vim-xterm"></div>
         <p class="mt-3">
           Write anything and save it as "/home/web_user/test.txt" by <code>:w ~/test.txt</code>.
@@ -80,6 +81,7 @@
         <h3 class="mt-4"><a
             href="https://github.com/mame/xterm-pty/blob/main/demo/build/example.c">example.c</a></h3>
         <button type="button" class="btn btn-primary btn-lg" id="example-run">Run</button>
+	<p>Loading status: <span id="example-status">Not loaded</span></p>
         <div class="mt-2" id="example-xterm"></div>
 
         <h2 class="mt-5">PThread proxying examples</h2>
@@ -89,12 +91,14 @@
         </p>
         <h3 class="mt-4"><a href="https://github.com/mtoyoda/sl">SL(1): Cure your bad habit of mistyping</a></h3>
         <button type="button" class="btn btn-primary btn-lg" id="sl-run">Run</button>
+	<p>Loading status: <span id="sl-status">Not loaded</span></p>
         <div class="mt-2" id="sl-xterm"></div>
 
         <h3 class="mt-4"><a href="https://www.ioccc.org/2006/sloane/sloane.c">sloane.c: IOCCC 2006 Homer's Favorite</a>
         </h3>
         <p><a href="https://www.ioccc.org/2006/sloane/hint.text">document</a></p>
         <button type="button" class="btn btn-primary btn-lg" id="sloane-run">Run</button>
+	<p>Loading status: <span id="sloane-status">Not loaded</span></p>
         <div class="mt-2" id="sloane-xterm"></div>
 
         <script type="module" src="app.ts"></script>
