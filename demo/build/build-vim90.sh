@@ -25,7 +25,7 @@ CONFIG_LDFLAGS="\
   -s ENVIRONMENT=web \
   --js-library $SCRIPT_DIR/../../emscripten-pty.js \
   -Wno-implicit-function-declaration \
-  -L$SCRIPT_DIR/ncurses-6.4/usr/local/lib \
+  -L$SCRIPT_DIR/ncurses-6.3/usr/local/lib \
 "
 
 emconfigure ./configure --host=wasm32-unknown-emscripten \

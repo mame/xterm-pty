@@ -24,8 +24,8 @@ emcc \
   --pre-js ../static/ncurses.fs.js \
   -o ../static/sl-core.js \
   $DIR/sl.c \
-  -Incurses-6.4/usr/local/include \
-  -Incurses-6.4/usr/local/include/ncurses \
-  -Lncurses-6.4/usr/local/lib \
+  -Incurses-6.3/usr/local/include \
+  -Incurses-6.3/usr/local/include/ncurses \
+  -Lncurses-6.3/usr/local/lib \
   -lncurses \
   -ltinfo
