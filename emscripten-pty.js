@@ -168,7 +168,7 @@ Object.assign(Lib, {
         // If so, that means it called into the PTY and the buffer was empty.
         if (result === -{{{ 1000 + cDefs.EAGAIN }}}) {
             // Wait for the PTY to become readable and try again.
-            PTY_waitForReadable(ok => wakeUp(ok ? impl() : result));
+            PTY_waitForReadable(ok => wakeUp(ok ? impl() : 0));
         } else {
             wakeUp(result);
         }
