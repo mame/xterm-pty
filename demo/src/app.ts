@@ -1,24 +1,30 @@
 import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
 import { openpty } from "xterm-pty";
 import "xterm/css/xterm.css";
 
 // vim
 (async() => {
   const vimXterm = new Terminal();
-  const vimStatus = document.getElementById("vim-status");
+
   const vimDiv = document.getElementById("vim-xterm");
   if (vimDiv) vimXterm.open(vimDiv);
 
   const { master, slave } = openpty();
   vimXterm.loadAddon(master);
 
+  const fitAddon = new FitAddon();
+  vimXterm.loadAddon(fitAddon);
+  new ResizeObserver(() => fitAddon.fit()).observe(vimDiv);
+  fitAddon.fit();
+
+  const vimStatus = document.getElementById("vim-status");
+
   const { default: initEmscripten } = await import("../static/vim-core.js");
   const module = await initEmscripten({
     pty: slave,
     setStatus: (s) => { vimStatus.innerText = s ? s : "Ready"; },
-    onExit: () => {
-      status.innerText = "Terminated";
-    },
+    onExit: () => { status.innerText = "Terminated"; },
   });
 
   const links = new Map();
@@ -49,11 +55,20 @@ import "xterm/css/xterm.css";
 
 const entry = (id: string, loadJS: () => Promise<any>) => {
   const xterm = new Terminal();
-  const status = document.getElementById(id + "-status");
+
   const div = document.getElementById(id + "-xterm");
   if (div) xterm.open(div);
+
   const { master, slave } = openpty();
   xterm.loadAddon(master);
+
+  const fitAddon = new FitAddon();
+  xterm.loadAddon(fitAddon);
+  new ResizeObserver(() => fitAddon.fit()).observe(div);
+  fitAddon.fit();
+
+  const status = document.getElementById(id + "-status");
+
   const button = document.getElementById(id + "-run") as HTMLButtonElement;
   let module: any;
   const invoke = async () => {
