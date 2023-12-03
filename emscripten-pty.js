@@ -177,7 +177,6 @@ Object.assign(Lib, {
         if (result === -{{{ 1000 + cDefs.EAGAIN }}}) {
             // Wait for the PTY to become readable and try again.
             PTY_waitForReadable(type => {
-                console.log(type);
                 switch (type) {
                     case 0: /* ready */
                         wakeUp(impl());
