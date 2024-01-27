@@ -59,8 +59,6 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
   const div = document.getElementById(id + "-xterm");
   if (div) xterm.open(div);
 
-  const { master, slave } = openpty();
-  xterm.loadAddon(master);
 
   const fitAddon = new FitAddon();
   xterm.loadAddon(fitAddon);
@@ -73,6 +71,8 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
   let module: any;
   const invoke = async () => {
     xterm.clear();
+    const { master, slave } = openpty();
+    xterm.loadAddon(master);
     button.disabled = true;
     const { default: initEmscripten } = await loadJS();
     module = await initEmscripten({
@@ -81,7 +81,8 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
       onExit: () => {
         module = undefined;
         button.disabled = false;
-	status.innerText = "Terminated";
+        status.innerText = "Terminated";
+        master.dispose();
         xterm.clear();
         xterm.write("\r[Terminated. Push the 'Run' button to restart it.]\r\n");
       },
