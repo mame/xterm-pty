@@ -3,7 +3,6 @@
   "description": "A pty for xterm.js and Emscripten",
   "version": "0.9.6",
   "main": "index.js",
-  "types": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mame/xterm-pty.git"
@@ -13,7 +12,6 @@
     "build": "tsc && webpack"
   },
   "files": [
-    "index.d.ts",
     "index.js.map",
     "emscripten-pty.js"
   ],
@@ -24,7 +22,6 @@
     "@types/jest": "^27.4.0",
     "@types/webpack": "^5.28.0",
     "@typescript-eslint/eslint-plugin": "^5.1.0",
-    "dts-bundle-webpack": "^1.0.2",
     "eslint": "^8.7.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
