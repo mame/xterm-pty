@@ -16,6 +16,12 @@ export class EventEmitter<T> {
   register = this._register.bind(this);
 
   public fire(arg: T): void {
-    for (const listener of this.listeners) listener(arg);
+    for (const listener of this.listeners) {
+      try {
+        listener(arg);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }
 }
