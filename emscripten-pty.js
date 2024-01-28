@@ -132,7 +132,7 @@ Object.assign(Lib, {
 
     $PTY_atomicIndex: 0,
 
-    $PTY_waitForReadableWithAtomic__deps: ['$PTY_waitForReadableWithAtomicImpl', '$PTY_atomicIndex'],
+    $PTY_waitForReadableWithAtomic__deps: ['$PTY_waitForReadableWithAtomicImpl', '$PTY_atomicIndex', 'malloc'],
     $PTY_waitForReadableWithAtomic: (callback) => {
         if (!PTY_atomicIndex) {
             PTY_atomicIndex = _malloc(4) >> 2;
