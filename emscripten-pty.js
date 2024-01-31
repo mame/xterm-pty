@@ -87,7 +87,7 @@ Object.assign(Lib, {
     $PTY_waitForReadableWithCallback__deps: ['$PTY', '$PTY_pollTimeout'],
     $PTY_waitForReadableWithCallback: (callback) => {
         if (PTY_pollTimeout === 0) {
-            return callback(PTY.readable);
+            return callback(PTY.readable ? 0 /* ready */ : 2 /* timeout */);
         }
         let handlerReadable, handlerSignal, timeoutId;
         new Promise((resolve) => {
