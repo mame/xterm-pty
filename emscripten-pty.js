@@ -160,7 +160,19 @@ Object.assign(Lib, {
         // If so, that means it called into the PTY and the buffer was empty.
         if (result === {{{ 1000 + cDefs.EAGAIN }}}) {
             // Wait for the PTY to become readable and try again.
-            PTY_waitForReadable(() => wakeUp(xterm_pty_old_fd_read(fd, iov, iovcnt, pnum)));
+            PTY_waitForReadable((type) => {
+                switch (type) {
+                    case 0: /* ready */
+			wakeUp(xterm_pty_old_fd_read(fd, iov, iovcnt, pnum));
+                        break;
+                    case 1: /* interrupted */
+                        wakeUp({{{ cDefs.EINTR }}});
+                        break;
+                    case 2: /* timeout */
+                        wakeUp(0);
+                        break;
+                }
+	    });
         } else {
             wakeUp(result);
         }
