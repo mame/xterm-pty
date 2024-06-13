@@ -231,6 +231,10 @@ test("input VERASE after TAB", () => {
   check("foo\t\b\b\b\b\bbar\r\n", "foobar\n", (ldisc) => {
     ldisc.writeFromLower("foo\t\x7fbar\r");
   });
+  check("foo\t\b\b\b\b\bx\r\n", "x\n", (ldisc) => {
+    ldisc.writeFromUpper("foo");
+    ldisc.writeFromLower("\t\x7fx\r");
+  });
 });
 
 test("input VERASE after UTF-8 character", () => {
@@ -272,15 +276,6 @@ test("input VERASE after EOF and a control character", () => {
 test("input VERASE after control character", () => {
   check("foo^H\b \b\b \bbar\r\n", "foobar\n", (ldisc) => {
     ldisc.writeFromLower("foo\b\x7fbar\r");
-  });
-});
-
-test("input VERASE after TAB", () => {
-  check("foo\tbar\b \b\b \b\b \b\b\b\b\b\b\b \bqux\r\n", "foqux\n", (ldisc) => {
-    ldisc.writeFromLower("foo\tbar\x7f\x7f\x7f\x7f\x7fqux\r");
-  });
-  check("foo\t\b\b\b\b\bbar\r\n", "foobar\n", (ldisc) => {
-    ldisc.writeFromLower("foo\t\x7fbar\r");
   });
 });
 
