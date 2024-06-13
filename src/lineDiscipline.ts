@@ -174,9 +174,15 @@ export class LineDiscipline {
     this.toLowerBuf.push(...buf);
   }
 
+  private updateBaseColumn() {
+    if (this.toUpperBuf.length == 0) {
+      this.baseColumn = this.column;
+    }
+  }
+
   private clearToUpper() {
     this.toUpperBuf.length = 0;
-    this.baseColumn = this.column;
+    this.updateBaseColumn();
   }
 
   private flushToUpper() {
@@ -267,6 +273,7 @@ export class LineDiscipline {
       this.flushToUpper();
     } else if (this.T.ECHO_P) {
       this.finishECHOPRT();
+      this.updateBaseColumn();
       if (c == NL) {
         this.echoToLower(NL, true);
       } else {
