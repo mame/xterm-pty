@@ -6,7 +6,7 @@
         "dev": "parcel src/*.html"
     },
     "dependencies": {
-        "xterm": "^5.0.0",
+        "@xterm/xterm": "^5.5.0",
         "xterm-addon-fit": "^0.8.0",
         "xterm-pty": "file:.."
     },

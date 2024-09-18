@@ -15,6 +15,7 @@ module.exports = {
   },
   output: {
     path: __dirname,
+    globalObject: "this",
     filename: "[name].js",
     libraryTarget: "umd",
   },

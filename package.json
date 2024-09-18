@@ -3,20 +3,22 @@
   "description": "A pty for xterm.js and Emscripten",
   "version": "0.10.2",
   "main": "index.js",
+  "types": "out/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mame/xterm-pty.git"
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc && webpack"
+    "build": "tsc && webpack",
+    "check": "tsc"
   },
   "files": [
     "index.js.map",
     "emscripten-pty.js"
   ],
   "dependencies": {
-    "xterm": "^4.16.0"
+    "@xterm/xterm": "^5.5.0"
   },
   "devDependencies": {
     "@types/jest": "^27.4.0",
