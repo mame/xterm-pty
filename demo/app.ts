@@ -5,10 +5,13 @@ import "xterm/css/xterm.css";
 
 // vim
 (async() => {
-  const vimXterm = new Terminal();
-
   const vimDiv = document.getElementById("vim-xterm");
-  if (vimDiv) vimXterm.open(vimDiv);
+  if (!vimDiv) return;
+  const vimStatus = document.getElementById("vim-status");
+  if (!vimStatus) return;
+
+  const vimXterm = new Terminal();
+  vimXterm.open(vimDiv);
 
   const { master, slave } = openpty();
   vimXterm.loadAddon(master);
@@ -18,13 +21,11 @@ import "xterm/css/xterm.css";
   new ResizeObserver(() => fitAddon.fit()).observe(vimDiv);
   fitAddon.fit();
 
-  const vimStatus = document.getElementById("vim-status");
-
   const { default: initEmscripten } = await import("./static/vim-core.js");
   const module = await initEmscripten({
     pty: slave,
-    setStatus: (s) => { vimStatus.innerText = s ? s : "Ready"; },
-    onExit: () => { status.innerText = "Terminated"; },
+    setStatus: (s: string) => { vimStatus.innerText = s ? s : "Ready"; },
+    onExit: () => { vimStatus.innerText = "Terminated"; },
   });
 
   const links = new Map();
@@ -54,20 +55,21 @@ import "xterm/css/xterm.css";
 })();
 
 const entry = (id: string, loadJS: () => Promise<any>) => {
-  const xterm = new Terminal();
-
   const div = document.getElementById(id + "-xterm");
-  if (div) xterm.open(div);
+  if (!div) return;
+  const status = document.getElementById(id + "-status");
+  if (!status) return;
+  const button = document.getElementById(id + "-run") as HTMLButtonElement | null;
+  if (!button) return;
 
+  const xterm = new Terminal();
+  xterm.open(div);
 
   const fitAddon = new FitAddon();
   xterm.loadAddon(fitAddon);
   new ResizeObserver(() => fitAddon.fit()).observe(div);
   fitAddon.fit();
 
-  const status = document.getElementById(id + "-status");
-
-  const button = document.getElementById(id + "-run") as HTMLButtonElement;
   let module: any;
   const invoke = async () => {
     xterm.clear();
@@ -77,7 +79,7 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
     const { default: initEmscripten } = await loadJS();
     module = await initEmscripten({
       pty: slave,
-      setStatus: (s) => { status.innerText = s ? s : "Ready"; },
+      setStatus: (s: string) => { status.innerText = s ? s : "Ready"; },
       onExit: () => {
         module = undefined;
         button.disabled = false;
