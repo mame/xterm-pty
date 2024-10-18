@@ -21,7 +21,7 @@
 //     xterm.write(`Hi, ${ slave.read().trim() }!\n`);
 //   });
 
-import { Terminal, ITerminalAddon, IDisposable } from "xterm";
+import { Terminal, ITerminalAddon, IDisposable } from "@xterm/xterm";
 import { EventEmitter } from "./eventEmitter";
 import { LineDiscipline } from "./lineDiscipline";
 import { Termios, TermiosConfig } from "./termios";

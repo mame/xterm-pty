@@ -11,7 +11,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "check": "tsc"
   },
   "files": [
     "emscripten-pty.js",
@@ -23,7 +24,7 @@
     "out/index.d.mts"
   ],
   "dependencies": {
-    "xterm": "^4.16.0"
+    "@xterm/xterm": "^5.5.0"
   },
   "devDependencies": {
     "@types/jest": "^27.4.0",
