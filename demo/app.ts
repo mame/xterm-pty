@@ -20,7 +20,7 @@ import "xterm/css/xterm.css";
 
   const vimStatus = document.getElementById("vim-status");
 
-  const { default: initEmscripten } = await import("../static/vim-core.js");
+  const { default: initEmscripten } = await import("./static/vim-core.js");
   const module = await initEmscripten({
     pty: slave,
     setStatus: (s) => { vimStatus.innerText = s ? s : "Ready"; },
@@ -91,8 +91,8 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
   button.onclick = invoke;
 };
 
-entry("example", () => import("../static/example-core.js"));
+entry("example", () => import("./static/example-core.js"));
 
-entry("sl", () => import("../static/sl-core.js"));
+entry("sl", () => import("./static/sl-core.js"));
 
-entry("sloane", () => import("../static/sloane-core.js"));
+entry("sloane", () => import("./static/sloane-core.js"));

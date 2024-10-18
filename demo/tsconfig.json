@@ -12,5 +12,5 @@
         "outDir": "./out/",
         "baseUrl": ".",
     },
-    "include": ["./src/", "./static/*-core.js"]
+    "include": ["./static/*-core.js", "app.ts"]
 }
