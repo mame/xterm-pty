@@ -31,10 +31,14 @@ CONFIG_LDFLAGS="\
 emconfigure ./configure --host=wasm32-unknown-emscripten \
   --with-tlib=tinfo \
   --with-vim-name=vim-core \
+  --disable-xattr \
   STRIP=true \
   CFLAGS="-Os" \
   LDFLAGS="$CONFIG_LDFLAGS" \
   ac_cv_sizeof_int=4 \
+  ac_cv_sizeof_long=4 \
+  ac_cv_sizeof_time_t=8 \
+  ac_cv_sizeof_off_t=8 \
   vim_cv_memmove_handles_overlap=yes \
   vim_cv_stat_ignores_slash=yes \
   vim_cv_tgetent=non-zero \
