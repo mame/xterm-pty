@@ -4,6 +4,7 @@ export default defineConfig({
   entry: [
     "src/index.ts",
   ],
+  minify: true,
   splitting: true,
   sourcemap: true,
   clean: true,
