@@ -10,7 +10,7 @@ fi
 
 emcc \
   -Os \
-  -D"main(k,Z)=int main(int k,char**Z)" \
+  -D"main(k,Z)=int main(k,Z)int k;" \
   -include stdio.h \
   -include math.h \
   -s EXPORT_ES6 \
@@ -22,3 +22,5 @@ emcc \
   -o ../static/sloane-core.js \
   -Wno-implicit-int \
   sloane.c
+
+sh worker-options-hack.sh ../static/sloane-core.js
