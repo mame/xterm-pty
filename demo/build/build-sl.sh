@@ -30,3 +30,5 @@ emcc \
   -Lncurses-6.4/usr/local/lib \
   -lncurses \
   -ltinfo
+
+sh worker-options-hack.sh ../static/sl-core.js
