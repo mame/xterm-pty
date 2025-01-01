@@ -21,17 +21,17 @@ int main() {
         if (!fgets(name, 256, stdin)) break;
         name[strlen(name) - 1] = '\0';
 
-	tcgetattr(0, &t);
-	t.c_lflag &= ~ECHO;
-	tcsetattr(0, TCSANOW, &t);
+        tcgetattr(0, &t);
+        t.c_lflag &= ~ECHO;
+        tcsetattr(0, TCSANOW, &t);
 
         printf("[Echo OFF] Input your password: ");
         fflush(stdout);
         if (!fgets(passwd, 256, stdin)) break;
 
-	tcgetattr(0, &t);
-	t.c_lflag |= ECHO;
-	tcsetattr(0, TCSANOW, &t);
+        tcgetattr(0, &t);
+        t.c_lflag |= ECHO;
+        tcsetattr(0, TCSANOW, &t);
 
         puts("");
         printf("Hello, %s! The length of your password is %ld.\n", name, strlen(passwd) - 1);
