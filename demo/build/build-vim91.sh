@@ -2,11 +2,11 @@
 
 set -ex
 
-FILE=vim-9.0.tar.bz2
-DIR=vim90
+FILE=vim-9.1.0.tar.bz2
+DIR=vim-9.1.0
 
 if [ ! -e $FILE ]; then
-  wget ftp://ftp.vim.org/pub/vim/unix/$FILE
+  wget -O $FILE https://github.com/vim/vim/archive/refs/tags/v9.1.0.tar.gz
 fi
 
 if [ ! -e $DIR ]; then
@@ -59,9 +59,9 @@ make -C src vim-core LDFLAGS="\
   $CONFIG_LDFLAGS \
   -s FORCE_FILESYSTEM \
   --pre-js $SCRIPT_DIR/../static/ncurses.fs.js \
-  --preload-file $PWD/usr/local/share/vim/vim90@/usr/local/share/vim/vim90 \
-  --exclude-file $PWD/usr/local/share/vim/vim90/lang \
-  --exclude-file $PWD/usr/local/share/vim/vim90/doc \
+  --preload-file $PWD/usr/local/share/vim/vim91@/usr/local/share/vim/vim91 \
+  --exclude-file $PWD/usr/local/share/vim/vim91/lang \
+  --exclude-file $PWD/usr/local/share/vim/vim91/doc \
   -s EXPORTED_RUNTIME_METHODS=FS \
 "
 
