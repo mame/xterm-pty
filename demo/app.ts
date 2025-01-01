@@ -1,7 +1,7 @@
 import { Terminal } from "@xterm/xterm";
-import { FitAddon } from "xterm-addon-fit";
+import { FitAddon } from "@xterm/addon-fit";
 import { openpty } from "xterm-pty";
-import "xterm/css/xterm.css";
+import "@xterm/xterm/css/xterm.css";
 
 // vim
 (async() => {
