@@ -65,13 +65,26 @@ Object.assign(Lib, {
     },
 
     $PTY: `Module['pty']`,
-    $PTY__deps: ['raise', '$PTY_signalNameToCode'],
+    $PTY_sighandlerCalled: false,
+    $PTY__deps: ['malloc', 'sigaction', 'raise', '$PTY_signalNameToCode', '$PTY_sighandlerCalled'],
     $PTY__postset: () => addAtInit(`
+        var sigactionIndex = _malloc(256 /* sizeof(struct sigaction) */);
         PTY.onSignal((signalName) => {
             let signalCode = PTY_signalNameToCode[signalName];
 #if ASSERTIONS
             assert(signalCode, \`Unsupported signal: \${signalCode}. Please report this error to xterm-pty.\`);
 #endif
+
+            // check if a signal handler will be called
+            HEAP32[sigactionIndex >> 2] = -1;
+            const ret = _sigaction(signalCode, 0, sigactionIndex);
+            const sighandler = HEAP32[sigactionIndex >> 2];
+            // SIG_DFL is 0 and SIG_IGN is -2 in Emscripten, so
+            // a positive value should be a function
+            if (sighandler > 0) {
+                PTY_sighandlerCalled = true;
+            }
+
             _raise(signalCode);
         });
     `),
@@ -84,7 +97,7 @@ Object.assign(Lib, {
         throw new FS.ErrnoError({{{ 1000 + cDefs.EAGAIN }}});
     },
 
-    $PTY_waitForReadableWithCallback__deps: ['$PTY', '$PTY_pollTimeout'],
+    $PTY_waitForReadableWithCallback__deps: ['$PTY', '$PTY_pollTimeout', '$PTY_sighandlerCalled'],
     $PTY_waitForReadableWithCallback: (callback) => {
         if (PTY_pollTimeout === 0) {
             return callback(PTY.readable ? 0 /* ready */ : 2 /* timeout */);
@@ -93,11 +106,15 @@ Object.assign(Lib, {
         new Promise((resolve) => {
             handlerReadable = PTY.onReadable(() => resolve(0 /* ready */));
 
-            // We need to stop select(2) when a signal is caught.
-            //
-            // TODO: In fact, it should be stopped "when a signal handler is called," not "a the signal is received."
-            // If the signal handler is set as SIG_IGN, select(2) should not be stopped.
-            handlerSignal = PTY.onSignal(() => resolve(1 /* interrupted */));
+            handlerSignal = PTY.onSignal((signalName) => {
+                const interrupt = PTY_sighandlerCalled;
+                PTY_sighandlerCalled = false;
+                if (interrupt) {
+                    // when a signal handler is called, some IO-blocking syscalls like
+                    // select(2) and read(2) should be interrupted by EINTR.
+                    return resolve(1 /* interrupted */);
+                }
+            });
 
             if (PTY_pollTimeout >= 0) {
                 // if negative timeout, don't stop early (in poll-like functions it means infinite wait),
