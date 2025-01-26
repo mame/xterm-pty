@@ -180,7 +180,13 @@ Object.assign(Lib, {
             PTY_waitForReadable((type) => {
                 switch (type) {
                     case 0: /* ready */
-			wakeUp(xterm_pty_old_fd_read(fd, iov, iovcnt, pnum));
+                        const inner = xterm_pty_old_fd_read(fd, iov, iovcnt, pnum);
+                        if (inner == {{{ 1000 + cDefs.EAGAIN }}}) {
+                          HEAP32[(pnum)>>2] = 0;
+                          wakeUp(0);
+                        } else {
+                          wakeUp(inner);
+                        }
                         break;
                     case 1: /* interrupted */
                         wakeUp({{{ cDefs.EINTR }}});
