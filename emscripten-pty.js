@@ -182,6 +182,11 @@ Object.assign(Lib, {
                     case 0: /* ready */
                         const inner = xterm_pty_old_fd_read(fd, iov, iovcnt, pnum);
                         if (inner == {{{ 1000 + cDefs.EAGAIN }}}) {
+                          // Despite the fact that we are in the readable state,
+                          // TTY.read returned our variant of EAGAIN again.
+                          // This means that a readable state was due to EOF.
+                          // Therefore, we return 0 to indicate that
+                          // it has successfully read 0 bytes (i.e., EOF).
                           HEAP32[(pnum)>>2] = 0;
                           wakeUp(0);
                         } else {
