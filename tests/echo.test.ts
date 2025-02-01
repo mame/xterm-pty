@@ -1,0 +1,35 @@
+import { test, expect, type Page } from '@playwright/test';
+import { inputKey, expectLines } from './helper';
+
+test('echo', async ({ page }) => {
+  await page.goto('http://localhost:33333/echo/index.html');
+  await expectLines(page, ["Echo start"]);
+  await inputKey(page, "Shift+KeyF");
+  await expectLines(page, ["Echo start", "F"]);
+  await inputKey(page, "KeyX");
+  await expectLines(page, ["Echo start", "Fx"]);
+  await inputKey(page, "Backspace");
+  await expectLines(page, ["Echo start", "F"]);
+  await inputKey(page, "Tab");
+  await inputKey(page, "KeyX");
+  await expectLines(page, ["Echo start", "F      x"]);
+  await inputKey(page, "Backspace");
+  await inputKey(page, "Backspace");
+  await expectLines(page, ["Echo start", "F"]);
+  await inputKey(page, "KeyO");
+  await expectLines(page, ["Echo start", "Fo"]);
+  await inputKey(page, "KeyO");
+  await expectLines(page, ["Echo start", "Foo"]);
+  await inputKey(page, "Enter");
+  await expectLines(page, ["Echo start", "Foo", "Foo"]);
+  await inputKey(page, "Shift+KeyB");
+  await expectLines(page, ["Echo start", "Foo", "Foo", "B"]);
+  await inputKey(page, "KeyA");
+  await expectLines(page, ["Echo start", "Foo", "Foo", "Ba"]);
+  await inputKey(page, "KeyR");
+  await expectLines(page, ["Echo start", "Foo", "Foo", "Bar"]);
+  await inputKey(page, "Enter");
+  await expectLines(page, ["Echo start", "Foo", "Foo", "Bar", "Bar"]);
+  await inputKey(page, "Control+KeyD");
+  await expectLines(page, ["Echo start", "Foo", "Foo", "Bar", "Bar", "Echo end"]);
+});
