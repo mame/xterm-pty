@@ -1,0 +1,17 @@
+{
+  "name": "vite-example",
+  "scripts": {
+    "dev": "vite",
+    "build:emcc:asyncify": "emcc -s ENVIRONMENT=web -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=../../emscripten-pty.js -o src/hello.mjs src/hello.c",
+    "build:emcc:worker": "emcc -s ENVIRONMENT=web,worker -s FORCE_FILESYSTEM -s PROXY_TO_PTHREAD -s EXIT_RUNTIME -pthread -Os --js-library=../../emscripten-pty.js -o src/hello.mjs src/hello.c && sed -i 's/var workerOptions=\\({[^}]*}\\);\\(worker=new Worker(new URL(\"[^\"]*\",import\\.meta\\.url),\\)workerOptions\\()\\)/\\2\\1\\3/g' src/hello.mjs",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.11"
+  },
+  "dependencies": {
+    "@xterm/xterm": "^5.5.0",
+    "xterm-pty": "file:../.."
+  }
+}

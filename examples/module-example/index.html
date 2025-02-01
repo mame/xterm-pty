@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<link rel="stylesheet" href="https://unpkg.com/@xterm/xterm/css/xterm.css" />
+</head>
+
+<body>
+	<div id="terminal"></div>
+	<script type="module">
+		// Xterm.js 5.5.0 does not support esm yet.
+		// https://github.com/xtermjs/xterm.js/pull/5092
+		// import { Terminal } from 'https://unpkg.com/@xterm/xterm/lib/xterm.mjs';
+		import 'https://unpkg.com/@xterm/xterm/lib/xterm.js';
+		import { openpty } from 'https://unpkg.com/xterm-pty/index.mjs';
+		import initEmscripten from './hello.mjs';
+
+		const xterm = new Terminal();
+		xterm.open(document.getElementById('terminal'));
+
+		// Create master/slave objects
+		const { master, slave } = openpty();
+
+		// Connect the master object to xterm.js
+		xterm.loadAddon(master);
+
+		// Start Emscripten with the slave object as a PTY
+		initEmscripten({ pty: slave });
+	</script>
+</body>
+
+</html>

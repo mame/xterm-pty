@@ -20,6 +20,7 @@ Use `LineDisciplineAddon.write` and `LineDisciplineAddon.onData` instead of `Ter
 ```js
 // Start an xterm.js instance
 const xterm = new Terminal();
+xterm.open(document.getElementById("terminal"));
 
 // Create master/slave objects
 const { master, slave } = openpty();
@@ -32,7 +33,8 @@ slave.write("Hello, world!\nInput your name:");
 
 // Use slave.onReadable and slave.read instead of xterm.onData
 slave.onReadable(() => {
-  xterm.write(`Hi, ${ slave.read().trim() }!\n`);
+  const input = (new TextDecoder).decode(Uint8Array.from(slave.read()));
+  slave.write(`Hi, ${ input.trim() }!\n`);
 });
 ```
 
@@ -101,12 +103,12 @@ Assume you want to run [example.c](https://github.com/mame/xterm-pty/blob/master
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@xterm/xterm/css/xterm.css" />
   </head>
   <body>
     <div id="terminal"></div>
     <script type="module">
-      import 'https://unpkg.com/xterm@5.3.0/lib/xterm.js';
+      import 'https://unpkg.com/@xterm/xterm/lib/xterm.js';
       import 'https://unpkg.com/xterm-pty/index.js';
       import initEmscripten from './example.mjs';
 
