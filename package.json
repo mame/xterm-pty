@@ -12,8 +12,12 @@
   "license": "MIT",
   "scripts": {
     "build": "tsup && cp out/index.* .",
-    "check": "tsc",
-    "lint": "eslint && prettier --check 'src/*'"
+    "build:tests": "make -C tests",
+    "lint": "eslint && prettier --check 'src/*'",
+    "test:tsc": "tsc",
+    "test:vitest": "vitest run src/",
+    "test:playwright": "playwright test",
+    "test-server": "node tests/server.mjs"
   },
   "files": [
     "emscripten-pty.js",
@@ -29,6 +33,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "^1.50.1",
+    "@types/node": "^22.13.0",
+    "@xterm/addon-fit": "^0.10.0",
     "esbuild-plugin-umd-wrapper": "^3.0.0",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^9.1.0",

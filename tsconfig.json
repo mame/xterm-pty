@@ -12,6 +12,6 @@
         "rootDir": "./src/",
         "useDefineForClassFields": false,
     },
-    "include": ["./src/"],
+    "include": ["./src/", "src/lineDiscipline.test.ts"],
     "exclude": ["./src/**/*.test.ts"],
 }

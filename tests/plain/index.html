@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<link rel="stylesheet" href="/root/node_modules/@xterm/xterm/css/xterm.css" />
+</head>
+
+<body>
+	<div id="terminal"></div>
+	<script src="/root/node_modules/@xterm/xterm/lib/xterm.js"></script>
+	<script src="/root/index.js"></script>
+
+	<script>
+		// Start an xterm.js instance
+		const xterm = new Terminal();
+		xterm.open(document.getElementById("terminal"));
+
+		// Create master/slave objects
+		const { master, slave } = openpty();
+
+		// Connect the master object to xterm.js
+		xterm.loadAddon(master);
+
+		// Use slave.write instead of xterm.write
+		slave.write("Hello, world!\nInput your name: ");
+
+		// Use slave.onReadable and slave.read instead of xterm.onData
+		slave.onReadable(() => {
+			const input = (new TextDecoder).decode(Uint8Array.from(slave.read()));
+			slave.write(`Hi, ${ input.trim() }!\n`);
+		});
+	</script>
+</body>
+
+</html>

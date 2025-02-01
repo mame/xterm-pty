@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<!-- link rel="stylesheet" href="https://unpkg.com/@xterm/xterm@X.X.X/css/xterm.css" / -->
+	<link rel="stylesheet" href="/root/node_modules/@xterm/xterm/css/xterm.css" />
+</head>
+
+<body>
+	<div id="terminal"></div>
+
+	<script type="module">
+		// import 'https://unpkg.com/@xterm/xterm@X.X.X/lib/xterm.js';
+		import '/root/node_modules/@xterm/xterm/lib/xterm.js';
+
+		// import 'https://unpkg.com/xterm-pty@X.X.X/index.js';
+		import { openpty } from '/root/index.mjs';
+
+		import initEmscripten from './hello.asyncify.mjs';
+
+		const xterm = new Terminal();
+		xterm.open(document.getElementById('terminal'));
+
+		// Create master/slave objects
+		const { master, slave } = openpty();
+
+		// Connect the master object to xterm.js
+		xterm.loadAddon(master);
+
+		// Start Emscripten with the slave object as a PTY
+		await initEmscripten({
+			pty: slave
+		});
+	</script>
+</body>
+
+</html>

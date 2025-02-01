@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<!-- link rel="stylesheet" href="https://unpkg.com/@xterm/xterm@X.X.X/css/xterm.css" / -->
+	<link rel="stylesheet" href="/root/node_modules/@xterm/xterm/css/xterm.css" />
+</head>
+
+<body>
+	<div id="terminal"></div>
+
+	<!-- script src="https://unpkg.com/@xterm/xterm@X.X.X/lib/xterm.js"></script -->
+	<script src="/root/node_modules/@xterm/xterm/lib/xterm.js"></script>
+
+	<!-- script src="https://unpkg.com/xterm-pty@X.X.X/index.js"></script -->
+	<script src="/root/index.js"></script>
+
+	<script>
+		var xterm = new Terminal();
+		xterm.open(document.getElementById('terminal'));
+
+		// Create master/slave objects
+		const { master, slave } = openpty();
+
+		// Connect the master object to xterm.js
+		xterm.loadAddon(master);
+
+		// Connect the slave object to Emscripten
+		Module = { pty: slave };
+	</script>
+
+	<script src="hello.worker.js"></script>
+</body>
+
+</html>
