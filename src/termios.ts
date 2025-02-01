@@ -55,7 +55,7 @@ export const enum Flags {
   VDISCARD = 13,
   VWERASE = 14,
   VLNEXT = 15,
-  VEOL2 = 16
+  VEOL2 = 16,
 }
 /* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 
@@ -73,7 +73,7 @@ export class Termios implements TermiosConfig {
     readonly oflag: number,
     readonly cflag: number,
     readonly lflag: number,
-    readonly cc: ReadonlyArray<number>
+    readonly cc: ReadonlyArray<number>,
   ) {}
 
   readonly ISTRIP_P = (this.iflag & Flags.ISTRIP) != 0;
@@ -127,7 +127,7 @@ export class Termios implements TermiosConfig {
       config.oflag,
       config.cflag,
       config.lflag,
-      config.cc
+      config.cc,
     );
   }
 
@@ -151,6 +151,6 @@ export const defaultTermios = new Termios(
   [
     0x03, 0x1c, 0x7f, 0x15, 0x04, 0x00, 0x01, 0x00, 0x11, 0x13, 0x1a, 0x00,
     0x12, 0x0f, 0x17, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-  ]
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  ],
 );

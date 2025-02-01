@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from "vitest";
 import { LineDiscipline } from "./lineDiscipline";
 import { Signal } from "./pty";
 import { Termios } from "./termios";
@@ -6,13 +6,14 @@ import { NL, CR } from "./utils";
 
 const utf8Decoder = new TextDecoder();
 
-const utf8BytesToString = (buf: number[]) => utf8Decoder.decode(new Uint8Array(buf));
+const utf8BytesToString = (buf: number[]) =>
+  utf8Decoder.decode(new Uint8Array(buf));
 
 const checkWithSignals = (
   expectedLowerBuf: string | number[],
   expectedUpperBuf: string | number[],
   expectedSignalBuf: Signal[],
-  block: (ldisc: LineDiscipline) => void
+  block: (ldisc: LineDiscipline) => void,
 ) => {
   const lowerBuf: number[] = [];
   const upperBuf: number[] = [];
@@ -45,7 +46,7 @@ const checkWithSignals = (
 const check = (
   expectedLowerBuf: string | number[],
   expectedUpperBuf: string | number[],
-  block: (ldisc: LineDiscipline) => void
+  block: (ldisc: LineDiscipline) => void,
 ) => {
   checkWithSignals(expectedLowerBuf, expectedUpperBuf, [], block);
 };
@@ -316,7 +317,7 @@ test("input VWERASE", () => {
     "foo baz corge\n",
     (ldisc) => {
       ldisc.writeFromLower("foo bar\x17baz qux\x17corge\r");
-    }
+    },
   );
 
   check("foo  \b \b\b \b\b \b\b \b\b \b", "", (ldisc) => {

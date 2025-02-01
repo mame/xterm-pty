@@ -1,3 +1,3 @@
 export { openpty } from "./pty";
-export { Flags } from './termios';
-export { Termios, TermiosConfig } from './termios';
+export { Flags } from "./termios";
+export { Termios, TermiosConfig } from "./termios";

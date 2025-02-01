@@ -54,6 +54,7 @@ import "@xterm/xterm/css/xterm.css";
   };
 })();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const entry = (id: string, loadJS: () => Promise<any>) => {
   const div = document.getElementById(id + "-xterm");
   if (!div) return;

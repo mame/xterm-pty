@@ -2,7 +2,6 @@
 /node_modules
 /tmp
 /out
-/dist
 /index.js*
 /index.d.ts
 .idea

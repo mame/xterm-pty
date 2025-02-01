@@ -43,7 +43,10 @@ class Master implements ITerminalAddon {
   private notifyWritable;
   private notifyResize;
 
-  constructor(private ldisc: LineDiscipline, private slave: Slave) {
+  constructor(
+    private ldisc: LineDiscipline,
+    private slave: Slave,
+  ) {
     const flushToLower = () => {
       if (this.fromLdiscToLowerBuffer.length >= 1) {
         this.waitingForLower = true;
@@ -77,7 +80,7 @@ class Master implements ITerminalAddon {
     this.disposables.push(
       xterm.onData(onData),
       xterm.onBinary(onData),
-      xterm.onResize(({ cols, rows }) => this.notifyResize(rows, cols))
+      xterm.onResize(({ cols, rows }) => this.notifyResize(rows, cols)),
     );
   }
 

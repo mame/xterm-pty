@@ -9,7 +9,7 @@ export class EventEmitter<T> {
     return {
       dispose: () => {
         this.listeners.delete(listener);
-      }
+      },
     };
   }
 

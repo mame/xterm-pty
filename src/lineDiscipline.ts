@@ -205,7 +205,7 @@ export class LineDiscipline {
           const spaces = 8 - (this.column % 8);
           this.column += spaces;
           this.outputToLower(
-            this.T.TABDLY_XTABS_P ? new Array(spaces).fill(SP) : [TAB]
+            this.T.TABDLY_XTABS_P ? new Array(spaces).fill(SP) : [TAB],
           );
           break;
         }
