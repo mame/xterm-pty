@@ -12,7 +12,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsup",
-    "check": "tsc"
+    "check": "tsc",
+    "lint": "eslint && prettier --check 'src/*'"
   },
   "files": [
     "emscripten-pty.js",
