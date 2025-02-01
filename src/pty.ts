@@ -159,11 +159,12 @@ export class Slave {
   ioctl(req: "TCGETS"): Termios;
   ioctl(req: "TCSETS", arg: TermiosConfig): void;
   ioctl(req: "TIOCGWINSZ"): [number, number];
-  ioctl(req: "TCGETS" | "TCSETS" | "TIOCGWINSZ", arg?: any) {
+  ioctl(req: "TCGETS" | "TCSETS" | "TIOCGWINSZ", arg?: TermiosConfig) {
     switch (req) {
       case "TCGETS":
         return this.ldisc.termios.clone();
       case "TCSETS":
+        if (!arg) throw new Error("ioctl: TCSETS requires a TermiosConfig");
         this.ldisc.termios = Termios.fromConfig(arg);
         return;
       case "TIOCGWINSZ":

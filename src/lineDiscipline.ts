@@ -53,7 +53,7 @@ import {
 } from "./utils";
 import { Signal } from "./pty";
 import { Termios, defaultTermios } from "./termios";
-import { EventEmitter, Event } from "./eventEmitter";
+import { EventEmitter } from "./eventEmitter";
 
 type KeyAction =
   | "normal"
@@ -490,16 +490,4 @@ export class LineDiscipline {
     for (const c of buf) this.outputToLowerWithPostprocess(c);
     this.flushToLower();
   }
-}
-
-export interface LineDiscipline {
-  readonly onWriteToLower: Event<number[]>;
-  readonly onWriteToUpper: Event<number[]>;
-  readonly onSignalToUpper: Event<Signal>;
-  readonly onFlowActivated: Event<void>;
-  readonly onFlowDeactivated: Event<void>;
-  flow: boolean;
-  termios: Termios;
-  writeFromLower: (arg: number[] | string) => void;
-  writeFromUpper: (arg: number[] | string) => void;
 }

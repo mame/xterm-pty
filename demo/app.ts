@@ -70,18 +70,16 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
   new ResizeObserver(() => fitAddon.fit()).observe(div);
   fitAddon.fit();
 
-  let module: any;
   const invoke = async () => {
     xterm.clear();
     const { master, slave } = openpty();
     xterm.loadAddon(master);
     button.disabled = true;
     const { default: initEmscripten } = await loadJS();
-    module = await initEmscripten({
+    await initEmscripten({
       pty: slave,
       setStatus: (s: string) => { status.innerText = s ? s : "Ready"; },
       onExit: () => {
-        module = undefined;
         button.disabled = false;
         status.innerText = "Terminated";
         master.dispose();

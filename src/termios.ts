@@ -2,6 +2,7 @@
 //
 // https://man7.org/linux/man-pages/man3/termios.3.html
 
+/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 export const enum Flags {
   // c_iflag
   ISTRIP = 0x0020,
@@ -56,6 +57,7 @@ export const enum Flags {
   VLNEXT = 15,
   VEOL2 = 16
 }
+/* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 
 export interface TermiosConfig {
   readonly iflag: number;
