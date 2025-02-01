@@ -1,5 +1,3 @@
-/coverage
-/node_modules
 /out
 
 /index.js
@@ -9,9 +7,14 @@
 /index.mjs.map
 /index.d.mts
 
+/examples/*-example/*.js
+/examples/*-example/*.mjs
+/examples/*-example/*.wasm
+
 /tests/*/*.js
 /tests/*/*.mjs
 /tests/*/*.wasm
+/tests/*-dist/
 
 node_modules/
 /test-results/
