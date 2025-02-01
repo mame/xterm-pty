@@ -56,11 +56,11 @@ See [examples/plain-example](https://github.com/mame/xterm-pty/tree/main/example
 
 Assume you want to run [example.c](https://github.com/mame/xterm-pty/blob/master/demo/build/example.c) in xterm.js.
 
-1. Set up the latest emscripten.
+#### 1. Set up the latest emscripten.
 
 See [the doc of emsdk](https://emscripten.org/docs/getting_started/downloads.html) and make sure that `emcc` is available.
 
-2. Build example.c.
+#### 2. Build example.c.
 
 ```
 wget https://raw.githubusercontent.com/mame/xterm-pty/refs/heads/main/demo/build/example.c
@@ -68,7 +68,7 @@ wget https://unpkg.com/xterm-pty/emscripten-pty.js
 emcc -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=emscripten-pty.js -o example.mjs example.c
 ```
 
-3. Write a HTML as follows.
+#### 3. Write a HTML as follows.
 
 ```html
 <!DOCTYPE html>
@@ -98,13 +98,13 @@ emcc -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=emscripten-pty.js -o example.m
 </html>
 ```
 
-4. Run http-server and open the HTML.
+#### 4. Run http-server and open the HTML.
 
 ```
 npx http-server
 ```
 
-### Complete examples
+#### Complete examples
 
 * [examples/module-example](https://github.com/mame/xterm-pty/tree/main/examples/module-example): A complete code example.
 * [examples/classic-example](https://github.com/mame/xterm-pty/tree/main/examples/classic-example): Same example, but using classic script instead of ESM.
