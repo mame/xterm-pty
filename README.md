@@ -15,7 +15,7 @@ Install `xterm-pty` as usual.
 npm i xterm-pty
 ```
 
-Use `LineDisciplineAddon.write` and `LineDisciplineAddon.onData` instead of `Terminal.write` and `Terminal.onData` of xterm.js.
+Use `slave.write` and `slave.onReadable` instead of `Terminal.write` and `Terminal.onData` of xterm.js.
 
 ```js
 // Start an xterm.js instance
@@ -48,13 +48,85 @@ Hi, Yusuke!
 ■
 ```
 
+See [examples/plain-example](https://github.com/mame/xterm-pty/tree/main/examples/plain-example) for a complete code example.
+
 ## Emscripten integration
+
+### TL;DR
+
+Assume you want to run [example.c](https://github.com/mame/xterm-pty/blob/master/demo/build/example.c) in xterm.js.
+
+1. Set up the latest emscripten.
+
+See [the doc of emsdk](https://emscripten.org/docs/getting_started/downloads.html) and make sure that `emcc` is available.
+
+2. Build example.c.
+
+```
+wget https://raw.githubusercontent.com/mame/xterm-pty/refs/heads/main/demo/build/example.c
+wget https://unpkg.com/xterm-pty/emscripten-pty.js
+emcc -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=emscripten-pty.js -o example.mjs example.c
+```
+
+3. Write a HTML as follows.
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://unpkg.com/@xterm/xterm/css/xterm.css" />
+  </head>
+  <body>
+    <div id="terminal"></div>
+    <script type="module">
+      import 'https://unpkg.com/@xterm/xterm/lib/xterm.js';
+      import { openpty } from 'https://unpkg.com/xterm-pty/index.mjs';
+      import initEmscripten from './example.mjs';
+
+      var xterm = new Terminal();
+      xterm.open(document.getElementById('terminal'));
+
+      // Create master/slave objects
+      const { master, slave } = openpty();
+
+      // Connect the master object to xterm.js
+      xterm.loadAddon(master);
+
+      await initEmscripten({ pty: slave });
+    </script>
+  </body>
+</html>
+```
+
+4. Run http-server and open the HTML.
+
+```
+npx http-server
+```
+
+### Complete examples
+
+* [examples/module-example](https://github.com/mame/xterm-pty/tree/main/examples/module-example): A complete code example.
+* [examples/classic-example](https://github.com/mame/xterm-pty/tree/main/examples/classic-example): Same example, but using classic script instead of ESM.
+* [examples/vite-example](https://github.com/mame/xterm-pty/tree/main/examples/vite-example): An example of a vite project for xterm-pty and emscripten.
+
+### Details
 
 Reading user input (e.g. via functions like `fgets`) requires pausing the WebAssembly app.
 
 We can't block the main thread as that will prevent any events, including user input, from waking the application and causing the deadlock. Instead, we support two modes of asynchronous pausing via corresponding Emscripten features.
 
-### PThread proxying
+#### Asyncify
+
+If you want your application running on the main thread, you can compile it with [`-s ASYNCIFY`](https://emscripten.org/docs/porting/asyncify.html).
+
+In this mode Emscripten will rewrite the WebAssembly application, making it behave as one large async-await function. This allows asynchronous pausing right on the main thread without actually blocking it.
+
+One downside is that it currently adds a noticeable size overhead to the resulting WebAssembly binary.
+
+Another is that, for performance reasons, we'll only automatically pause to read user input (e.g. via `fgets`) and not to flush any output, so if your application writes a lot of output non-stop like the earlier mentioned [Sloane demo](https://xterm-pty.netlify.app/#sloane-xterm), you won't see it appear on the screen until you manually pause the application with e.g. [`emscripten_sleep(0)`](https://emscripten.org/docs/porting/emscripten-runtime-environment.html?highlight=emscripten_sleep#using-asyncify-to-yield-to-the-browser).
+
+#### PThread proxying
 
 You can compile your application with [`-pthread -s PROXY_TO_PTHREAD`](https://emscripten.org/docs/porting/pthreads.html?highlight=proxy_to_pthread#additional-flags). In this mode Emscripten will transparently move your application to run in a pthread (in a Web Worker).
 
@@ -72,62 +144,6 @@ Cross-Origin-Embedder-Policy: require-corp
 ```
 
 See [this explainer](https://web.dev/coop-coep/) for more details on these headers.
-
-### Asyncify
-
-If you want your application running on the main thread, you can instead compile it with [`-s ASYNCIFY`](https://emscripten.org/docs/porting/asyncify.html).
-
-In this mode Emscripten will rewrite the WebAssembly application, making it behave as one large async-await function. This allows asynchronous pausing right on the main thread without actually blocking it.
-
-One downside is that it currently adds a noticeable size overhead to the resulting WebAssembly binary.
-
-Another is that, for performance reasons, we'll only automatically pause to read user input (e.g. via `fgets`) and not to flush any output, so if your application writes a lot of output non-stop like the earlier mentioned [Sloane demo](https://xterm-pty.netlify.app/#sloane-xterm), you won't see it appear on the screen until you manually pause the application with e.g. [`emscripten_sleep(0)`](https://emscripten.org/docs/porting/emscripten-runtime-environment.html?highlight=emscripten_sleep#using-asyncify-to-yield-to-the-browser).
-
-### Example
-
-Assume you want to run [example.c](https://github.com/mame/xterm-pty/blob/master/demo/build/example.c) in xterm.js.
-
-1. Compile it with Emscripten with either `-s ASYNCIFY` or `-s PROXY_TO_PTHREAD`.
-
-    Include xterm-pty's Emscripten integration library via `--js-library=[path to xterm-pty]/emscripten-pty.js`. We'll use ES6 module output as that's the easiest way to pass some options to the generated Emscripten `Module`, but feel free to use any other output format.
-
-    ```shell
-    emcc -s ASYNCIFY --js-library=node_modules/xterm-pty/emscripten-pty.js -o example.mjs example.c
-    ```
-
-    This will generate two files, example.mjs and example.wasm.
-
-2. Write a HTML as follows.
-
-```html
-<!DOCTYPE html>
-<html>
-  <head>
-    <link rel="stylesheet" href="https://unpkg.com/@xterm/xterm/css/xterm.css" />
-  </head>
-  <body>
-    <div id="terminal"></div>
-    <script type="module">
-      import 'https://unpkg.com/@xterm/xterm/lib/xterm.js';
-      import 'https://unpkg.com/xterm-pty/index.js';
-      import initEmscripten from './example.mjs';
-
-      var xterm = new Terminal();
-      xterm.open(document.getElementById('terminal'));
-
-      // Create master/slave objects
-      const { master, slave } = openpty();
-
-      // Connect the master object to xterm.js
-      xterm.loadAddon(master);
-
-      await initEmscripten({
-        pty: slave
-      });
-    </script>
-  </body>
-</html>
-```
 
 ### Caveats
 
