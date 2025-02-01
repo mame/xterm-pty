@@ -1,6 +1,6 @@
-# xterm-pty example (Vite)
+# xterm-pty emscripten example (Vite)
 
-This is a minimal example of a Vite project using xterm-pty.
+This is a minimal example of a Vite project using xterm-pty and emscripten.
 
 ## Asyncify mode
 

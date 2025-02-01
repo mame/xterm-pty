@@ -4,6 +4,7 @@ OUTPUTS := \
 	module-asyncify-dist \
 	module-worker-dist \
 	vite-example-dist \
+	plain-example-dist \
 	echo/echo.js \
 	signals/signals.js
 
@@ -32,6 +33,10 @@ $(eval $(call generate,module-worker-dist,mjs,$(WORKER_OPTIONS),$(MODULE_EXAMPLE
 
 vite-example-dist: $(VITE_EXAMPLE)
 	cd ../examples/vite-example && npm ci && npm run build:emcc:asyncify && npm run build -- --base ./ --outDir ../../tests/$@ --emptyOutDir
+
+plain-example-dist: ../examples/plain-example/index.html
+	mkdir -p $@
+	sed 's|https://unpkg.com/xterm-pty/|/root/|;s|https://unpkg.com/|/root/node_modules/|' < $< > $@/index.html
 
 echo/echo.js: echo/echo.c 
 	emcc $(ASYNCIFY_OPTIONS) -o $@ $<

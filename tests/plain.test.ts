@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { inputKey, expectLines } from './helper';
 
 test('plain', async ({ page }) => {
-  await page.goto('http://localhost:33333/plain/index.html');
+  await page.goto('http://localhost:33333/plain-example-dist/index.html');
   await expectLines(page, ["Hello, world!", "Input your name: "]);
   await inputKey(page, "Shift+KeyF");
   await expectLines(page, ["Hello, world!", "Input your name: F"]);

@@ -1,4 +1,4 @@
-# xterm-pty example (ESM scripts)
+# xterm-pty emscripten example (ESM)
 
 ## Asyncify mode (easy)
 
