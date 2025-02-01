@@ -1,14 +1,15 @@
-import { defineConfig } from "tsup";
+import { defineConfig, Options } from "tsup";
+import { umdWrapper } from 'esbuild-plugin-umd-wrapper';
 
 export default defineConfig({
   entry: [
     "src/index.ts",
   ],
   minify: true,
-  splitting: true,
   sourcemap: true,
   clean: true,
   outDir: "out",
   dts: true,
-  format: ["cjs", "esm"],
+  format: 'umd' as Options["format"],
+  esbuildPlugins: [umdWrapper()],
 });

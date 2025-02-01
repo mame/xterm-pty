@@ -2,33 +2,30 @@
   "name": "xterm-pty",
   "description": "A pty for xterm.js and Emscripten",
   "version": "0.11.0",
-  "main": "out/index.js",
-  "module": "out/index.mjs",
-  "types": "out/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mame/xterm-pty.git"
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && mv out/index.d.ts out/index.js out/index.js.map .",
     "check": "tsc",
     "lint": "eslint && prettier --check 'src/*'"
   },
   "files": [
     "emscripten-pty.js",
-    "out/index.js",
-    "out/index.js.map",
-    "out/index.mjs",
-    "out/index.mjs.map",
-    "out/index.d.ts",
-    "out/index.d.mts"
+    "index.js",
+    "index.js.map",
+    "index.d.ts"
   ],
   "dependencies": {
     "@xterm/xterm": "^5.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "esbuild-plugin-umd-wrapper": "^3.0.0",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.4.2",
