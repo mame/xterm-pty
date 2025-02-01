@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest';
 import { LineDiscipline } from "./lineDiscipline";
 import { Signal } from "./pty";
 import { Termios } from "./termios";
