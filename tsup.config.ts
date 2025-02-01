@@ -10,6 +10,6 @@ export default defineConfig({
   clean: true,
   outDir: "out",
   dts: true,
-  format: 'umd' as Options["format"],
+  format: ["esm", "umd"] as Options["format"],
   esbuildPlugins: [umdWrapper()],
 });

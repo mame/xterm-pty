@@ -3,6 +3,7 @@
   "description": "A pty for xterm.js and Emscripten",
   "version": "0.11.0",
   "main": "index.js",
+  "module": "index.mjs",
   "types": "index.d.ts",
   "repository": {
     "type": "git",
@@ -10,7 +11,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsup && mv out/index.d.ts out/index.js out/index.js.map .",
+    "build": "tsup && cp out/index.* .",
     "check": "tsc",
     "lint": "eslint && prettier --check 'src/*'"
   },
@@ -18,7 +19,10 @@
     "emscripten-pty.js",
     "index.js",
     "index.js.map",
-    "index.d.ts"
+    "index.d.ts",
+    "index.mjs",
+    "index.mjs.map",
+    "index.d.mts"
   ],
   "dependencies": {
     "@xterm/xterm": "^5.5.0"
