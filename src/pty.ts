@@ -11,7 +11,7 @@
 //   const { master, slave } = openpty();
 //
 //   // Connect the master object to xterm.js
-//   xterm.loadAddon(ldiscAddon);
+//   xterm.loadAddon(master);
 //
 //   // Use slave.write instead of xterm.write
 //   slave.write("Hello, world!\nInput your name:");
