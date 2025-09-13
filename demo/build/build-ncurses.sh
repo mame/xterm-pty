@@ -24,7 +24,7 @@ emconfigure ./configure --build=x86_64-linux-gnu --host=wasm32-unknown-emscripte
   --with-termlib
 make install -j`nproc`
 
-$(dirname $(which emcc))/tools/file_packager \
+$(em-config EMSCRIPTEN_ROOT)/tools/file_packager \
   ../../static/ncurses.fs.data \
   --js-output=../../static/ncurses.fs.js \
   --preload usr/local/share/terminfo/x/xterm-256color@/usr/local/share/terminfo/x/xterm-256color
