@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { inputKey, expectLines } from './helper';
 
 test('plain', async ({ page }) => {
