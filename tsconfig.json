@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-        "noImplicitAny": true,
-        "module": "commonjs",
-        "target": "es2015",
-        "strict": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "declaration": true,
-        "sourceMap": true,
-        "outDir": "./out/",
-        "rootDir": "./src/",
-        "useDefineForClassFields": false,
-    },
-    "include": ["./src/", "src/lineDiscipline.test.ts"],
-    "exclude": ["./src/**/*.test.ts"],
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "module": "commonjs",
+    "target": "es2015",
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./out/",
+    "rootDir": "./src/",
+    "useDefineForClassFields": false
+  },
+  "include": ["./src/", "src/lineDiscipline.test.ts"],
+  "exclude": ["./src/**/*.test.ts"]
 }

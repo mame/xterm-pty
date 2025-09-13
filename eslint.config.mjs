@@ -1,10 +1,29 @@
-import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
+import prettierConfig from "eslint-config-prettier";
 
-/** @type {import('eslint').Linter.Config[]} */
 export default [
-  {files: ["**/*.{js,mjs,cjs,ts}"]},
-  {ignores: ["demo/build", "demo/dist", "demo/static", "out", "emscripten-pty.js"]},
-  pluginJs.configs.recommended,
+  {
+    ignores: [
+      "demo/build",
+      "demo/dist",
+      "demo/static",
+      "out",
+      "emscripten-pty.js",
+      "index.js",
+      "index.mjs",
+      "index.d.ts",
+      "index.d.mts",
+      "examples/**/*.js",
+      "examples/**/*.mjs",
+      "tests/**/*.js",
+      "tests/**/*.mjs",
+      "playwright-report",
+      "test-results",
+    ],
+  },
   ...tseslint.configs.recommended,
+  {
+    rules: {},
+  },
+  prettierConfig,
 ];

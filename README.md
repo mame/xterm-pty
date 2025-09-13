@@ -7,7 +7,7 @@ See [the demo site: https://xterm-pty.netlify.app/](https://xterm-pty.netlify.ap
 
 ## How to use
 
-*If you want to use this library to run a CUI program built with [Emscripten](https://emscripten.org/), you can go to [Section "Emscripten integration"](#emscripten-integration).*
+_If you want to use this library to run a CUI program built with [Emscripten](https://emscripten.org/), you can go to [Section "Emscripten integration"](#emscripten-integration)._
 
 Install `xterm-pty` as usual.
 
@@ -20,7 +20,7 @@ Use `slave.write` and `slave.onReadable` instead of `Terminal.write` and `Termin
 ```js
 // Start an xterm.js instance
 const xterm = new Terminal();
-xterm.open(document.getElementById("terminal"));
+xterm.open(document.getElementById('terminal'));
 
 // Create master/slave objects
 const { master, slave } = openpty();
@@ -33,8 +33,8 @@ slave.write("Hello, world!\nInput your name:");
 
 // Use slave.onReadable and slave.read instead of xterm.onData
 slave.onReadable(() => {
-  const input = (new TextDecoder).decode(Uint8Array.from(slave.read()));
-  slave.write(`Hi, ${ input.trim() }!\n`);
+  const input = new TextDecoder().decode(Uint8Array.from(slave.read()));
+  slave.write(`Hi, ${input.trim()}!\n`);
 });
 ```
 
@@ -74,17 +74,20 @@ emcc -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=emscripten-pty.js -o example.m
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="https://unpkg.com/@xterm/xterm/css/xterm.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@xterm/xterm/css/xterm.css"
+    />
   </head>
   <body>
     <div id="terminal"></div>
     <script type="module">
-      import 'https://unpkg.com/@xterm/xterm/lib/xterm.js';
-      import { openpty } from 'https://unpkg.com/xterm-pty/index.mjs';
-      import initEmscripten from './example.mjs';
+      import "https://unpkg.com/@xterm/xterm/lib/xterm.js";
+      import { openpty } from "https://unpkg.com/xterm-pty/index.mjs";
+      import initEmscripten from "./example.mjs";
 
       var xterm = new Terminal();
-      xterm.open(document.getElementById('terminal'));
+      xterm.open(document.getElementById("terminal"));
 
       // Create master/slave objects
       const { master, slave } = openpty();
@@ -106,9 +109,9 @@ npx http-server
 
 #### Complete examples
 
-* [examples/module-example](https://github.com/mame/xterm-pty/tree/main/examples/module-example): A complete code example.
-* [examples/classic-example](https://github.com/mame/xterm-pty/tree/main/examples/classic-example): Same example, but using classic script instead of ESM.
-* [examples/vite-example](https://github.com/mame/xterm-pty/tree/main/examples/vite-example): An example of a vite project for xterm-pty and emscripten.
+- [examples/module-example](https://github.com/mame/xterm-pty/tree/main/examples/module-example): A complete code example.
+- [examples/classic-example](https://github.com/mame/xterm-pty/tree/main/examples/classic-example): Same example, but using classic script instead of ESM.
+- [examples/vite-example](https://github.com/mame/xterm-pty/tree/main/examples/vite-example): An example of a vite project for xterm-pty and emscripten.
 
 ### Details
 
@@ -149,10 +152,10 @@ See [this explainer](https://web.dev/coop-coep/) for more details on these heade
 
 Currently, Emscripten integration library patches the Emscripten runtime functions to intercept TTY access.
 
-* `fd_read` to pause on reads from the file descriptor 0
-* TTY write to stdout and stderr to redirect the output to the terminal
-* `ioctl_*` for TCGETS (getting termios), TCSETS and families (setting termios), and TIOCGWINSZ (gettins window size)
-* `poll` and `newselect` syscalls to pause while waiting for stdin to become readable
+- `fd_read` to pause on reads from the file descriptor 0
+- TTY write to stdout and stderr to redirect the output to the terminal
+- `ioctl_*` for TCGETS (getting termios), TCSETS and families (setting termios), and TIOCGWINSZ (gettins window size)
+- `poll` and `newselect` syscalls to pause while waiting for stdin to become readable
 
 It also sends terminal signals to the Emscripten'd application so that Ctrl+C for termination or terminal resizing should work as expected.
 
