@@ -1,4 +1,4 @@
-import { defineConfig, Options } from "tsup";
+import { defineConfig, Options } from "tsdown";
 import { umdWrapper } from "esbuild-plugin-umd-wrapper";
 
 export default defineConfig({
@@ -10,4 +10,5 @@ export default defineConfig({
   dts: true,
   format: ["esm", "umd"] as Options["format"],
   esbuildPlugins: [umdWrapper()],
+  outputOptions: { name: "xterm-pty" } as Options["outputOptions"],
 });

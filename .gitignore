@@ -6,6 +6,8 @@
 /index.mjs
 /index.mjs.map
 /index.d.mts
+/index.umd.js
+/index.umd.js.map
 
 /examples/*-example/*.js
 /examples/*-example/*.mjs
