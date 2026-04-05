@@ -73,7 +73,9 @@ class Master implements ITerminalAddon {
   }
 
   activate(xterm: Terminal) {
-    this.onWrite(([buf, callback]) => xterm.write(buf, callback));
+    this.disposables.push(
+      this.onWrite(([buf, callback]) => xterm.write(buf, callback)),
+    );
 
     const onData = (str: string) => this.ldisc.writeFromLower(str);
 
