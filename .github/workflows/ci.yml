@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: npm ci
+      - run: npm run test:vitest
+
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        emscripten: [latest, 3.1.69]
+    name: playwright (emscripten ${{ matrix.emscripten }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Set up Emscripten
+        run: |
+          wget https://github.com/emscripten-core/emsdk/archive/main.tar.gz
+          tar -xf main.tar.gz
+          emsdk-main/emsdk install ${{ matrix.emscripten }}
+          emsdk-main/emsdk activate ${{ matrix.emscripten }}
+          emsdk-main/emsdk construct_env > tmp
+          source tmp
+          for i in `sed -n 's/^export \(.*\)=.*$/\1/p' tmp`
+          do
+            echo $i"<<EOF" >> $GITHUB_ENV
+            echo ${!i} >> $GITHUB_ENV
+            echo EOF >> $GITHUB_ENV
+          done
+      - run: npm ci
+      - run: npm run build
+      - run: npm run build:tests
+      - run: npx playwright install --with-deps
+      - run: npx playwright test
+
+  build:
+    needs: [test, playwright]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Set up Emscripten
+        run: |
+          wget https://github.com/emscripten-core/emsdk/archive/main.tar.gz
+          tar -xf main.tar.gz
+          emsdk-main/emsdk install latest
+          emsdk-main/emsdk activate latest
+          emsdk-main/emsdk construct_env > tmp
+          source tmp
+          for i in `sed -n 's/^export \(.*\)=.*$/\1/p' tmp`
+          do
+            echo $i"<<EOF" >> $GITHUB_ENV
+            echo ${!i} >> $GITHUB_ENV
+            echo EOF >> $GITHUB_ENV
+          done
+
+      - name: Cache downloaded sources
+        uses: actions/cache@v4
+        with:
+          path: demo/build/downloads
+          key: demo-downloads-${{ hashFiles('demo/build/build-*.sh') }}
+
+      - name: Build xterm-pty
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build demo programs
+        working-directory: demo/build
+        run: bash build-all.sh
+
+      - name: Build demo site
+        working-directory: demo
+        run: |
+          npm install
+          npx vite build
+
+      - name: Upload demo site
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-dist
+          path: demo/dist
