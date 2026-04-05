@@ -2,10 +2,11 @@
 
 set -ex
 
-FILE=sloane.c
+mkdir -p downloads
+FILE=downloads/sloane.c
 
 if [ ! -e $FILE ]; then
-  wget https://www.ioccc.org/2006/sloane/$FILE
+  wget -O $FILE https://www.ioccc.org/2006/sloane/sloane.c
 fi
 
 emcc \
@@ -21,6 +22,6 @@ emcc \
   -s FORCE_FILESYSTEM \
   -o ../static/sloane-core.js \
   -Wno-implicit-int \
-  sloane.c
+  downloads/sloane.c
 
 sh worker-options-hack.sh ../static/sloane-core.js
