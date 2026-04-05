@@ -5,7 +5,11 @@
 /build/ncurses-*
 /build/vim*
 /build/sl-*
-/build/sloane.c
-/build/*.tar.bz2
-/build/*.tar.gz
+/build/downloads
 /static/workerTools.js
+/static/*.wasm
+/static/*.data
+/static/*-core.js
+/static/*.worker.js
+/static/*.worker.mjs
+/static/ncurses.fs.js
