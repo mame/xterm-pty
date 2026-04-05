@@ -4,7 +4,7 @@ export const NL = 10;
 export const CR = 13;
 export const SP = 32;
 
-export const isalnum = (c: number) =>
+export const isWordChar = (c: number) =>
   (0x30 <= c && c <= 0x39) ||
   (0x41 <= c && c <= 0x5a) ||
   c == 0x5f ||
