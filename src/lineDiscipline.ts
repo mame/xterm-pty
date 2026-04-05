@@ -44,7 +44,7 @@ import {
   NL,
   CR,
   SP,
-  isalnum,
+  isWordChar,
   iscntrl,
   isUtf8ContinuationByte,
   tolower,
@@ -310,7 +310,7 @@ export class LineDiscipline {
       if (this.T.IUTF8_P && isUtf8ContinuationByte(c)) continue;
 
       if (type == "VWERASE") {
-        if (isalnum(c) || c == 0x5f /* '_' */) {
+        if (isWordChar(c)) {
           alnumsFound = true;
         } else if (alnumsFound) break;
       }
@@ -482,7 +482,7 @@ export class LineDiscipline {
 
   writeFromUpper(arg: number[] | string) {
     if (this.flowActivated == false) {
-      throw "Do not write anything during flowStatus is stopped";
+      throw new Error("Do not write anything during flowStatus is stopped");
     }
 
     const buf = typeof arg == "string" ? stringToUtf8Bytes(arg) : arg;
