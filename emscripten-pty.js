@@ -72,7 +72,7 @@ Object.assign(Lib, {
         PTY.onSignal((signalName) => {
             let signalCode = PTY_signalNameToCode[signalName];
 #if ASSERTIONS
-            assert(signalCode, \`Unsupported signal: \${signalCode}. Please report this error to xterm-pty.\`);
+            assert(signalCode, \`Unsupported signal: \${signalName}. Please report this error to xterm-pty.\`);
 #endif
 
             // check if a signal handler will be called
