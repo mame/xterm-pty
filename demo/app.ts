@@ -55,7 +55,7 @@ import "@xterm/xterm/css/xterm.css";
 })();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const entry = (id: string, loadJS: () => Promise<any>) => {
+const entry = (id: string, loadJS: () => Promise<any>, { fit = true } = {}) => {
   const div = document.getElementById(id + "-xterm");
   if (!div) return;
   const status = document.getElementById(id + "-status");
@@ -66,10 +66,14 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
   const xterm = new Terminal();
   xterm.open(div);
 
-  const fitAddon = new FitAddon();
-  xterm.loadAddon(fitAddon);
-  new ResizeObserver(() => fitAddon.fit()).observe(div);
-  fitAddon.fit();
+  if (fit) {
+    const fitAddon = new FitAddon();
+    xterm.loadAddon(fitAddon);
+    new ResizeObserver(() => fitAddon.fit()).observe(div);
+    fitAddon.fit();
+  } else {
+    div.style.overflowX = "auto";
+  }
 
   const invoke = async () => {
     xterm.clear();
@@ -94,6 +98,6 @@ const entry = (id: string, loadJS: () => Promise<any>) => {
 
 entry("example", () => import("./static/example-core.js"));
 
-entry("sl", () => import("./static/sl-core.js"));
+entry("sl", () => import("./static/sl-core.js"), { fit: false });
 
-entry("sloane", () => import("./static/sloane-core.js"));
+entry("sloane", () => import("./static/sloane-core.js"), { fit: false });
