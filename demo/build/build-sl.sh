@@ -2,18 +2,16 @@
 
 set -ex
 
-FILE=sl-5.02.tar.gz
+mkdir -p downloads
+FILE=downloads/sl-5.02.tar.gz
 DIR=sl-5.02
 
 if [ ! -e $FILE ]; then
-  wget https://github.com/mtoyoda/sl/archive/refs/tags/5.02.tar.gz -O $FILE
+  wget -O $FILE https://github.com/mtoyoda/sl/archive/refs/tags/5.02.tar.gz
 fi
 
-if [ ! -e $DIR ]; then
-  tar xf $FILE
-fi
-
-tar xzf $FILE
+rm -rf $DIR
+tar xf $FILE
 emcc \
   -Os \
   -pthread \

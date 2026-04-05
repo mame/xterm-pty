@@ -2,17 +2,15 @@
 
 set -ex
 
-FILE=ncurses-6.4.tar.gz
+mkdir -p downloads
+FILE=downloads/ncurses-6.4.tar.gz
 DIR=ncurses-6.4
 
 if [ ! -e $FILE ]; then
-  wget https://invisible-mirror.net/archives/ncurses/$FILE
+  wget -O $FILE https://invisible-mirror.net/archives/ncurses/ncurses-6.4.tar.gz
 fi
 
-if [ ! -e $DIR ]; then
-  tar xf $FILE
-fi
-
+rm -rf $DIR
 tar xf $FILE
 cd $DIR
 emconfigure ./configure --build=x86_64-linux-gnu --host=wasm32-unknown-emscripten \
