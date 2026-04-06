@@ -47,9 +47,17 @@ function ifPThread(name, implPThread, implMainThread) {
 // Rename fd_read and its config to internal $xterm_pty_old_fd_read - we're going to wrap it.
 renameFuncKeys('fd_read', '$xterm_pty_old_fd_read');
 
-// Same for __syscall__newselect and __syscall_poll.
-renameFuncKeys('__syscall__newselect', '$xterm_pty_old_newselect');
-renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
+// Newer Emscripten provides async __syscall_poll / __syscall__newselect that
+// call stream_ops.poll with a notify callback (3rd argument). When that's
+// the case, we don't need to wrap them ourselves and can drive the wait via
+// the callback in stream_ops.poll. Older Emscripten has only a synchronous
+// poll/select that we still need to wrap with PTY_wrapPoll.
+const hasAsyncPoll = Lib['__syscall_poll__async'] === true;
+
+if (!hasAsyncPoll) {
+    renameFuncKeys('__syscall__newselect', '$xterm_pty_old_newselect');
+    renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
+}
 
 // Remove FS_stdin_getChar, its config and buffer altogether - we're going to implement higher-level bulk reading.
 deleteFuncKeys('$FS_stdin_getChar');
@@ -209,45 +217,50 @@ Object.assign(Lib, {
     fd_read__async: true,
 #endif
 
-    $PTY_wrapPoll__deps: ['$PTY_waitForReadable', '$PTY_handleSleep'],
-    $PTY_wrapPoll: (impl) => PTY_handleSleep((wakeUp) => {
-        let result = impl();
-        // Did this call return our variant of EAGAIN?
-        // If so, that means it called into the PTY and the buffer was empty.
-        if (result === -{{{ 1000 + cDefs.EAGAIN }}}) {
-            // Wait for the PTY to become readable and try again.
-            PTY_waitForReadable(type => {
-                switch (type) {
-                    case 0: /* ready */
-                        wakeUp(impl());
-                        break;
-                    case 1: /* interrupted */
-                        wakeUp(-{{{ cDefs.EINTR }}});
-                        break;
-                    case 2: /* timeout */
-                        wakeUp(0);
-                        break;
-                }
-            });
-        } else {
-            wakeUp(result);
-        }
-    }),
-
-    __syscall__newselect__deps: ['$xterm_pty_old_newselect', '$PTY_wrapPoll'],
-    __syscall__newselect: (nfds, readfds, writefds, exceptfds, timeout) => (
-        PTY_wrapPoll(() => xterm_pty_old_newselect(nfds, readfds, writefds, exceptfds, timeout))
-    ),
-#if !PROXY_TO_PTHREAD
-    __syscall__newselect__async: true,
-#endif
-
-    __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_wrapPoll'],
-    __syscall_poll: (fds, nfds, timeout) => PTY_wrapPoll(() => xterm_pty_old_poll(fds, nfds, timeout)),
-#if !PROXY_TO_PTHREAD
-    __syscall_poll__async: true,
-#endif
 });
+
+if (!hasAsyncPoll) {
+    Object.assign(Lib, {
+        $PTY_wrapPoll__deps: ['$PTY_waitForReadable', '$PTY_handleSleep'],
+        $PTY_wrapPoll: (impl) => PTY_handleSleep((wakeUp) => {
+            let result = impl();
+            // Did this call return our variant of EAGAIN?
+            // If so, that means it called into the PTY and the buffer was empty.
+            if (result === -{{{ 1000 + cDefs.EAGAIN }}}) {
+                // Wait for the PTY to become readable and try again.
+                PTY_waitForReadable(type => {
+                    switch (type) {
+                        case 0: /* ready */
+                            wakeUp(impl());
+                            break;
+                        case 1: /* interrupted */
+                            wakeUp(-{{{ cDefs.EINTR }}});
+                            break;
+                        case 2: /* timeout */
+                            wakeUp(0);
+                            break;
+                    }
+                });
+            } else {
+                wakeUp(result);
+            }
+        }),
+
+        __syscall__newselect__deps: ['$xterm_pty_old_newselect', '$PTY_wrapPoll'],
+        __syscall__newselect: (nfds, readfds, writefds, exceptfds, timeout) => (
+            PTY_wrapPoll(() => xterm_pty_old_newselect(nfds, readfds, writefds, exceptfds, timeout))
+        ),
+#if !PROXY_TO_PTHREAD
+        __syscall__newselect__async: true,
+#endif
+
+        __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_wrapPoll'],
+        __syscall_poll: (fds, nfds, timeout) => PTY_wrapPoll(() => xterm_pty_old_poll(fds, nfds, timeout)),
+#if !PROXY_TO_PTHREAD
+        __syscall_poll__async: true,
+#endif
+    });
+}
 
 // Override default TTY ops to use our PTY.
 // Doing this at compile-time reduces amount of generated unused JS.
@@ -321,10 +334,30 @@ Object.assign(Lib.$TTY.stream_ops, {
         return length;
     },
 
-    poll: (stream, timeout) => {
-        if (!PTY.readable && timeout) {
-            PTY_askToWaitAgain(timeout);
+    poll: hasAsyncPoll
+        ? (stream, timeout, notifyCallback) => {
+            var flags = (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
+            // Newer Emscripten async poll API: register a callback for when
+            // the PTY becomes readable. The caller passes a notifyCallback
+            // when it actually wants to wait; otherwise we just return the
+            // current status.
+            if (notifyCallback && !(flags & {{{ cDefs.POLLIN }}})) {
+                var handler = PTY.onReadable(() => {
+                    handler.dispose();
+                    notifyCallback(
+                        (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) |
+                        (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0)
+                    );
+                });
+                notifyCallback.registerCleanupFunc(() => handler.dispose());
+            }
+            return flags;
         }
-        return (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
-    },
+        : (stream, timeout) => {
+            // Older Emscripten: throw to let PTY_wrapPoll wait for us.
+            if (!PTY.readable && timeout) {
+                PTY_askToWaitAgain(timeout);
+            }
+            return (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
+        },
 });
