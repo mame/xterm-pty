@@ -52,7 +52,9 @@ renameFuncKeys('fd_read', '$xterm_pty_old_fd_read');
 // the case, we don't need to wrap them ourselves and can drive the wait via
 // the callback in stream_ops.poll. Older Emscripten has only a synchronous
 // poll/select that we still need to wrap with PTY_wrapPoll.
-const hasAsyncPoll = Lib['__syscall_poll__async'] === true;
+// Newer Emscripten (5.0+) uses __async: 'auto' instead of __async: true,
+// so accept any truthy value here.
+const hasAsyncPoll = !!Lib['__syscall_poll__async'];
 
 if (!hasAsyncPoll) {
     renameFuncKeys('__syscall__newselect', '$xterm_pty_old_newselect');
