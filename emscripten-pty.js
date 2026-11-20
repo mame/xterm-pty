@@ -64,7 +64,11 @@ if (!hasAsyncPoll) {
 // Remove FS_stdin_getChar, its config and buffer altogether - we're going to implement higher-level bulk reading.
 deleteFuncKeys('$FS_stdin_getChar');
 deleteFuncKeys('$FS_stdin_getChar_buffer');
-Lib.$TTY__deps = Lib.$TTY__deps.filter(d => d !== '$FS_stdin_getChar');
+// Emscripten 7 no longer defines this metadata field (libtty.js dropped its
+// dependency list), so update it only when it exists.
+if (Lib.$TTY__deps) {
+    Lib.$TTY__deps = Lib.$TTY__deps.filter(d => d !== '$FS_stdin_getChar');
+}
 
 Object.assign(Lib, {
     $PTY_signalNameToCode: {
@@ -266,7 +270,9 @@ if (!hasAsyncPoll) {
 
 // Override default TTY ops to use our PTY.
 // Doing this at compile-time reduces amount of generated unused JS.
-Lib.$TTY__deps.push('$PTY', '$PTY_askToWaitAgain');
+if (Lib.$TTY__deps) {
+    Lib.$TTY__deps.push('$PTY', '$PTY_askToWaitAgain');
+}
 
 let outputTtyOps = {
     put_char: () => {
