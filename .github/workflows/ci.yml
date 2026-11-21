@@ -23,8 +23,13 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        emscripten: [latest, 3.1.69]
-    name: playwright (emscripten ${{ matrix.emscripten }})
+        include:
+          - emscripten: latest
+          - emscripten: 3.1.69
+          # xterm-pty supports both xterm.js 5 and 6; the others use 6.
+          - emscripten: latest
+            xterm: 5
+    name: playwright (emscripten ${{ matrix.emscripten }}${{ matrix.xterm && format(', xterm {0}', matrix.xterm) || '' }})
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -45,6 +50,9 @@ jobs:
             echo EOF >> $GITHUB_ENV
           done
       - run: npm ci
+      - name: Use xterm.js 5
+        if: matrix.xterm == 5
+        run: npm install --no-save @xterm/xterm@^5.5.0 @xterm/addon-fit@^0.10.0
       - run: npm run build
       - run: npm run build:tests
       - run: npx playwright install --with-deps
