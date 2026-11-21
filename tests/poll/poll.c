@@ -1,6 +1,8 @@
 // Checks that poll(2) and select(2) on the PTY wake up as soon as the PTY
-// becomes readable.
+// becomes readable, and that a signal handler interrupts them.
+#include <errno.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -35,7 +37,19 @@ static void report(const char *kind, const char *name, int ok, int ret, long ela
            kind, name, ok ? "ok" : "NG", ret, elapsed);
 }
 
+static volatile sig_atomic_t sigint_received;
+
+static void sigint_handler(int sig) {
+  sigint_received = 1;
+}
+
 int main(void) {
+  // Without SA_RESTART, so that a signal interrupts poll/select with EINTR.
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = sigint_handler;
+  sigaction(SIGINT, &sa, NULL);
+
   struct termios t;
   tcgetattr(0, &t);
   t.c_lflag &= ~(ICANON | ECHO);
@@ -57,6 +71,16 @@ int main(void) {
     elapsed = now_ms() - t0;
     read(0, &c, 1);
     report(kind, "readable", ret == 1 && elapsed < 5000, ret, elapsed);
+
+    // A signal handler should interrupt the wait with EINTR.
+    printf("%s-interrupted: press C-c\n", kind);
+    fflush(stdout);
+    sigint_received = 0;
+    t0 = now_ms();
+    ret = wait_for(use_select, 0, 0, 10000);
+    int err = errno;
+    elapsed = now_ms() - t0;
+    report(kind, "interrupted", ret == -1 && err == EINTR && sigint_received && elapsed < 5000, ret, elapsed);
   }
 
   printf("\033[2J\033[H%sPoll test end\n", results);
