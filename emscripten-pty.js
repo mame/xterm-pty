@@ -56,6 +56,12 @@ renameFuncKeys('fd_read', '$xterm_pty_old_fd_read');
 // so accept any truthy value here.
 const hasAsyncPoll = !!Lib['__syscall_poll__async'];
 
+// Emscripten 6.0+ replaced the notifyCallback of stream_ops.poll with a
+// per-node readiness wait-queue (FSNode.addListener / notifyListeners): a
+// waiting poll/select registers itself on the node and re-checks the
+// readiness when the node is notified.
+const hasPollWaitQueue = !!Lib['$doPollAsync'];
+
 if (!hasAsyncPoll) {
     renameFuncKeys('__syscall__newselect', '$xterm_pty_old_newselect');
     renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
@@ -268,10 +274,32 @@ if (!hasAsyncPoll) {
     });
 }
 
+if (hasPollWaitQueue) {
+    Object.assign(Lib, {
+        // The FS nodes of the PTY that poll/select may wait on.
+        $PTY_pollNodes: 'new Set()',
+
+        // Make sure that the wait-queue of the node is notified whenever the
+        // PTY becomes readable; otherwise a poll/select with a timeout sleeps
+        // until the timeout expires even if input arrives. The handler is
+        // registered once per node and kept: when nobody is waiting,
+        // notifyListeners is a no-op.
+        $PTY_watchNodeForPoll__deps: ['$PTY', '$PTY_pollNodes'],
+        $PTY_watchNodeForPoll: (node) => {
+            if (PTY_pollNodes.has(node)) return;
+            PTY_pollNodes.add(node);
+            PTY.onReadable(() => node.notifyListeners({{{ cDefs.POLLIN }}}));
+        },
+    });
+}
+
 // Override default TTY ops to use our PTY.
 // Doing this at compile-time reduces amount of generated unused JS.
 if (Lib.$TTY__deps) {
     Lib.$TTY__deps.push('$PTY', '$PTY_askToWaitAgain');
+    if (hasPollWaitQueue) {
+        Lib.$TTY__deps.push('$PTY_watchNodeForPoll');
+    }
 }
 
 let outputTtyOps = {
@@ -342,10 +370,17 @@ Object.assign(Lib.$TTY.stream_ops, {
         return length;
     },
 
-    poll: hasAsyncPoll
+    poll: hasPollWaitQueue
+        ? (stream) => {
+            // Emscripten 6.0+: a waiting poll/select waits on the node's
+            // wait-queue, so we just have to notify it (see above).
+            PTY_watchNodeForPoll(stream.node);
+            return (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
+        }
+        : hasAsyncPoll
         ? (stream, timeout, notifyCallback) => {
             var flags = (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
-            // Newer Emscripten async poll API: register a callback for when
+            // Emscripten 5.x async poll API: register a callback for when
             // the PTY becomes readable. The caller passes a notifyCallback
             // when it actually wants to wait; otherwise we just return the
             // current status.
