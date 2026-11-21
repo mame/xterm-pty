@@ -6,7 +6,9 @@ OUTPUTS := \
 	vite-example-dist \
 	plain-example-dist \
 	echo/echo.js \
-	signals/signals.js
+	signals/signals.js \
+	poll/poll.js \
+	poll/poll-worker.js
 
 all: $(OUTPUTS)
 
@@ -43,6 +45,12 @@ echo/echo.js: echo/echo.c
 
 signals/signals.js: signals/signals.c 
 	emcc $(ASYNCIFY_OPTIONS) -o $@ $<
+
+poll/poll.js: poll/poll.c
+	emcc $(ASYNCIFY_OPTIONS) -o $@ $<
+
+poll/poll-worker.js: poll/poll.c
+	emcc $(WORKER_OPTIONS) -o $@ $<
 
 clean:
 	rm -rf $(OUTPUTS)
