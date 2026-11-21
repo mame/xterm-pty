@@ -17,12 +17,18 @@ async function runPollTest(page: Page, url: string) {
     await waitFor(`${kind}-interrupted: press C-c`);
     await page.waitForTimeout(200);
     await inputKey(page, 'Control+KeyC');
+
+    await waitFor(`${kind}-resumed: press C-s, Enter, and then C-q`);
+    await inputKey(page, 'Control+KeyS');
+    await inputKey(page, 'Enter');
+    await page.waitForTimeout(500);
+    await inputKey(page, 'Control+KeyQ');
   }
   await waitFor('Poll test end');
 
   const text = await rows.innerText();
   for (const kind of ['poll', 'select']) {
-    for (const name of ['timeout', 'writable', 'readable', 'interrupted']) {
+    for (const name of ['timeout', 'writable', 'readable', 'interrupted', 'resumed']) {
       expect(text).toContain(`${kind}-${name}: ok`);
     }
   }
