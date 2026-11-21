@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { inputKey } from './helper';
 
-// poll(2) and select(2) with a timeout must return as soon as the PTY becomes
-// readable or a signal handler is called, instead of sleeping until the
+// poll(2) and select(2) must honor their timeout, and return as soon as the
+// PTY is ready or a signal handler is called, instead of sleeping until the
 // timeout expires.
 async function runPollTest(page: Page, url: string) {
   const rows = page.locator('#terminal .xterm-rows');
@@ -22,7 +22,7 @@ async function runPollTest(page: Page, url: string) {
 
   const text = await rows.innerText();
   for (const kind of ['poll', 'select']) {
-    for (const name of ['readable', 'interrupted']) {
+    for (const name of ['timeout', 'writable', 'readable', 'interrupted']) {
       expect(text).toContain(`${kind}-${name}: ok`);
     }
   }

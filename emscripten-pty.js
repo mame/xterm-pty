@@ -126,17 +126,16 @@ Object.assign(Lib, {
         });
     `),
 
-    $PTY_pollTimeout: 0,
-
-    $PTY_askToWaitAgain__deps: ['$PTY_pollTimeout', '$FS'],
-    $PTY_askToWaitAgain: (timeout) => {
-        PTY_pollTimeout = timeout;
+    $PTY_askToWaitAgain__deps: ['$FS'],
+    $PTY_askToWaitAgain: () => {
         throw new FS.ErrnoError({{{ 1000 + cDefs.EAGAIN }}});
     },
 
-    $PTY_waitForReadableWithCallback__deps: ['$PTY', '$PTY_pollTimeout', '$PTY_sighandlerCalled'],
-    $PTY_waitForReadableWithCallback: (callback) => {
-        if (PTY_pollTimeout === 0) {
+    // Waits until the PTY becomes readable, a signal handler is called, or
+    // `timeout` ms elapse (negative: forever).
+    $PTY_waitWithCallback__deps: ['$PTY', '$PTY_sighandlerCalled'],
+    $PTY_waitWithCallback: (callback, timeout) => {
+        if (timeout === 0) {
             return callback(PTY.readable ? 0 /* ready */ : 2 /* timeout */);
         }
         let handlerReadable, handlerSignal, timeoutId;
@@ -153,10 +152,10 @@ Object.assign(Lib, {
                 }
             });
 
-            if (PTY_pollTimeout >= 0) {
+            if (timeout >= 0) {
                 // if negative timeout, don't stop early (in poll-like functions it means infinite wait),
                 // otherwise wait specified number of ms.
-                timeoutId = setTimeout(resolve, PTY_pollTimeout, 2 /* timeout */);
+                timeoutId = setTimeout(resolve, timeout, 2 /* timeout */);
             }
         })
         .then(type => {
@@ -175,24 +174,24 @@ Object.assign(Lib, {
         return result;
     },
 
-    $PTY_waitForReadableWithAtomicImpl__deps: ['$PTY_waitForReadableWithCallback'],
-    $PTY_waitForReadableWithAtomicImpl: (atomicIndex) => {
-        PTY_waitForReadableWithCallback(type => {
+    $PTY_waitWithAtomicImpl__deps: ['$PTY_waitWithCallback'],
+    $PTY_waitWithAtomicImpl: (atomicIndex, timeout) => {
+        PTY_waitWithCallback(type => {
             Atomics.store(HEAP32, atomicIndex, type);
             Atomics.notify(HEAP32, atomicIndex);
-        });
+        }, timeout);
     },
-    $PTY_waitForReadableWithAtomicImpl__proxy: 'async',
+    $PTY_waitWithAtomicImpl__proxy: 'async',
 
     $PTY_atomicIndex: 0,
 
-    $PTY_waitForReadableWithAtomic__deps: ['$PTY_waitForReadableWithAtomicImpl', '$PTY_atomicIndex', 'malloc'],
-    $PTY_waitForReadableWithAtomic: (callback) => {
+    $PTY_waitWithAtomic__deps: ['$PTY_waitWithAtomicImpl', '$PTY_atomicIndex', 'malloc'],
+    $PTY_waitWithAtomic: (callback, timeout) => {
         if (!PTY_atomicIndex) {
             PTY_atomicIndex = _malloc(4) >> 2;
         }
         HEAP32[PTY_atomicIndex] = -1;
-        PTY_waitForReadableWithAtomicImpl(PTY_atomicIndex);
+        PTY_waitWithAtomicImpl(PTY_atomicIndex, timeout);
         Atomics.wait(HEAP32, PTY_atomicIndex, -1);
         callback(HEAP32[PTY_atomicIndex]);
     },
@@ -203,9 +202,9 @@ Object.assign(Lib, {
 #endif
 
     ...ifPThread('$PTY_handleSleep', 'PTY_handleSleepWithAtomic', 'Asyncify.handleSleep'),
-    ...ifPThread('$PTY_waitForReadable', 'PTY_waitForReadableWithAtomic', 'PTY_waitForReadableWithCallback'),
+    ...ifPThread('$PTY_wait', 'PTY_waitWithAtomic', 'PTY_waitWithCallback'),
 
-    fd_read__deps: ['$PTY_handleSleep', '$PTY_waitForReadable', '$xterm_pty_old_fd_read'],
+    fd_read__deps: ['$PTY_handleSleep', '$PTY_wait', '$xterm_pty_old_fd_read'],
     // Note: intentionally using handleSleep instead of handleAsync as it can avoid pausing Wasm
     // when fd_read is invoked on non-TTY FDs, while Promises always pause.
     fd_read: (fd, iov, iovcnt, pnum) => PTY_handleSleep((wakeUp) => {
@@ -214,7 +213,7 @@ Object.assign(Lib, {
         // If so, that means it called into the PTY and the buffer was empty.
         if (result === {{{ 1000 + cDefs.EAGAIN }}}) {
             // Wait for the PTY to become readable and try again.
-            PTY_waitForReadable((type) => {
+            PTY_wait((type) => {
                 switch (type) {
                     case 0: /* ready */
                         const inner = xterm_pty_old_fd_read(fd, iov, iovcnt, pnum);
@@ -237,7 +236,7 @@ Object.assign(Lib, {
                         wakeUp(0);
                         break;
                 }
-	    });
+            }, -1 /* no timeout */);
         } else {
             wakeUp(result);
         }
@@ -249,18 +248,48 @@ Object.assign(Lib, {
 });
 
 if (!hasAsyncPoll) {
+    // Older Emscripten has only a synchronous poll/select, which neither waits
+    // nor (for poll) even passes its timeout to stream_ops.poll. So we wrap
+    // them: probe the readiness, and if nothing is ready but the PTY is among
+    // the polled FDs, wait for the PTY to change (or the timeout) and re-probe.
     Object.assign(Lib, {
-        $PTY_wrapPoll__deps: ['$PTY_waitForReadable', '$PTY_handleSleep'],
-        $PTY_wrapPoll: (impl) => PTY_handleSleep((wakeUp) => {
-            let result = impl();
-            // Did this call return our variant of EAGAIN?
-            // If so, that means it called into the PTY and the buffer was empty.
-            if (result === -{{{ 1000 + cDefs.EAGAIN }}}) {
+        $PTY_polled: false,
+
+        // These run on the main thread, where the FS and the PTY live.
+        // They return our variant of EAGAIN if nothing is ready and the PTY was polled.
+        $PTY_probePoll__deps: ['$xterm_pty_old_poll', '$PTY_polled'],
+        $PTY_probePoll__proxy: 'sync',
+        $PTY_probePoll: (fds, nfds, timeout) => {
+            PTY_polled = false;
+            const result = xterm_pty_old_poll(fds, nfds, timeout);
+            return result === 0 && PTY_polled ? -{{{ 1000 + cDefs.EAGAIN }}} : result;
+        },
+
+        $PTY_probeSelect__deps: ['$xterm_pty_old_newselect', '$PTY_polled'],
+        $PTY_probeSelect__proxy: 'sync',
+        $PTY_probeSelect: (nfds, readfds, writefds, exceptfds, timeout) => {
+            PTY_polled = false;
+            const result = xterm_pty_old_newselect(nfds, readfds, writefds, exceptfds, timeout);
+            return result === 0 && PTY_polled ? -{{{ 1000 + cDefs.EAGAIN }}} : result;
+        },
+
+        $PTY_wrapPoll__deps: ['$PTY_wait', '$PTY_handleSleep'],
+        $PTY_wrapPoll: (probe, timeout) => PTY_handleSleep((wakeUp) => {
+            const start = Date.now();
+            const attempt = () => {
+                const result = probe();
+                if (result !== -{{{ 1000 + cDefs.EAGAIN }}}) {
+                    return wakeUp(result);
+                }
+                const remaining = timeout < 0 ? -1 : Math.max(0, timeout - (Date.now() - start));
+                if (remaining === 0) {
+                    return wakeUp(0);
+                }
                 // Wait for the PTY to become readable and try again.
-                PTY_waitForReadable(type => {
+                PTY_wait(type => {
                     switch (type) {
                         case 0: /* ready */
-                            wakeUp(impl());
+                            attempt();
                             break;
                         case 1: /* interrupted */
                             wakeUp(-{{{ cDefs.EINTR }}});
@@ -269,22 +298,36 @@ if (!hasAsyncPoll) {
                             wakeUp(0);
                             break;
                     }
-                });
-            } else {
-                wakeUp(result);
-            }
+                }, remaining);
+            };
+            attempt();
         }),
 
-        __syscall__newselect__deps: ['$xterm_pty_old_newselect', '$PTY_wrapPoll'],
-        __syscall__newselect: (nfds, readfds, writefds, exceptfds, timeout) => (
-            PTY_wrapPoll(() => xterm_pty_old_newselect(nfds, readfds, writefds, exceptfds, timeout))
-        ),
+        __syscall__newselect__deps: ['$PTY_probeSelect', '$PTY_wrapPoll'],
+        __syscall__newselect: (nfds, readfds, writefds, exceptfds, timeout) => {
+            // musl passes the timeval as an array of two longs.
+            const ms = timeout
+                ? {{{ makeGetValue('timeout', 0, 'i32') }}} * 1000 + {{{ makeGetValue('timeout', POINTER_SIZE, 'i32') }}} / 1000
+                : -1;
+            // The original select overwrites the fd sets (only their first 64
+            // bits are used) even if nothing is ready, so restore them before
+            // each probe.
+            const sets = [readfds, writefds, exceptfds].filter(p => p);
+            const saved = sets.map(p => [{{{ makeGetValue('p', 0, 'i32') }}}, {{{ makeGetValue('p', 4, 'i32') }}}]);
+            return PTY_wrapPoll(() => {
+                sets.forEach((p, i) => {
+                    {{{ makeSetValue('p', 0, 'saved[i][0]', 'i32') }}};
+                    {{{ makeSetValue('p', 4, 'saved[i][1]', 'i32') }}};
+                });
+                return PTY_probeSelect(nfds, readfds, writefds, exceptfds, timeout);
+            }, ms);
+        },
 #if !PROXY_TO_PTHREAD
         __syscall__newselect__async: true,
 #endif
 
-        __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_wrapPoll'],
-        __syscall_poll: (fds, nfds, timeout) => PTY_wrapPoll(() => xterm_pty_old_poll(fds, nfds, timeout)),
+        __syscall_poll__deps: ['$PTY_probePoll', '$PTY_wrapPoll'],
+        __syscall_poll: (fds, nfds, timeout) => PTY_wrapPoll(() => PTY_probePoll(fds, nfds, timeout), timeout),
 #if !PROXY_TO_PTHREAD
         __syscall_poll__async: true,
 #endif
@@ -365,6 +408,9 @@ if (Lib.$TTY__deps) {
     if (hasPollWaitQueue) {
         Lib.$TTY__deps.push('$PTY_watchNodeForPoll', '$PTY_pollInterrupting');
     }
+    if (!hasAsyncPoll) {
+        Lib.$TTY__deps.push('$PTY_polled');
+    }
 }
 
 let outputTtyOps = {
@@ -418,7 +464,7 @@ Object.assign(Lib.$TTY.stream_ops, {
     read: (stream, buffer, offset, length) => {
         let readBytes = PTY.read(length);
         if (length && !readBytes.length) {
-            PTY_askToWaitAgain(-1);
+            PTY_askToWaitAgain();
         }
         buffer.set(readBytes, offset);
         return readBytes.length;
@@ -463,10 +509,9 @@ Object.assign(Lib.$TTY.stream_ops, {
             return flags;
         }
         : (stream, timeout) => {
-            // Older Emscripten: throw to let PTY_wrapPoll wait for us.
-            if (!PTY.readable && timeout) {
-                PTY_askToWaitAgain(timeout);
-            }
+            // Older Emscripten: let PTY_wrapPoll know that it should wait for
+            // the PTY if nothing is ready.
+            PTY_polled = true;
             return (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
         },
 });
