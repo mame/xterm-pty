@@ -57,7 +57,8 @@ jobs:
       - run: npm run build
       - run: npm run build:tests
       - run: npx playwright install --with-deps
-      - run: npx playwright test
+      # xterm.js 5 has no ESM build, which examples/module-example uses.
+      - run: npx playwright test ${{ matrix.xterm == 5 && '--grep-invert module-example' || '' }}
 
   build:
     needs: [test, playwright]

@@ -82,7 +82,7 @@ emcc -s FORCE_FILESYSTEM -s ASYNCIFY --js-library=emscripten-pty.js -o example.m
   <body>
     <div id="terminal"></div>
     <script type="module">
-      import "https://unpkg.com/@xterm/xterm/lib/xterm.js";
+      import { Terminal } from "https://unpkg.com/@xterm/xterm/lib/xterm.mjs";
       import { openpty } from "https://unpkg.com/xterm-pty/index.mjs";
       import initEmscripten from "./example.mjs";
 
