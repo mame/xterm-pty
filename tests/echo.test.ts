@@ -1,8 +1,8 @@
-import { test } from '@playwright/test';
-import { inputKey, expectLines } from './helper';
+import { test } from "@playwright/test";
+import { inputKey, expectLines } from "./helper";
 
-test('echo', async ({ page }) => {
-  await page.goto('http://localhost:33333/echo/index.html');
+test("echo", async ({ page }) => {
+  await page.goto("http://localhost:33333/echo/index.html");
   await expectLines(page, ["Echo start"]);
   await inputKey(page, "Shift+KeyF");
   await expectLines(page, ["Echo start", "F"]);
@@ -31,5 +31,12 @@ test('echo', async ({ page }) => {
   await inputKey(page, "Enter");
   await expectLines(page, ["Echo start", "Foo", "Foo", "Bar", "Bar"]);
   await inputKey(page, "Control+KeyD");
-  await expectLines(page, ["Echo start", "Foo", "Foo", "Bar", "Bar", "Echo end"]);
+  await expectLines(page, [
+    "Echo start",
+    "Foo",
+    "Foo",
+    "Bar",
+    "Bar",
+    "Echo end",
+  ]);
 });

@@ -4,7 +4,7 @@ import { openpty } from "xterm-pty";
 import "@xterm/xterm/css/xterm.css";
 
 // vim
-(async() => {
+(async () => {
   const vimDiv = document.getElementById("vim-xterm");
   if (!vimDiv) return;
   const vimStatus = document.getElementById("vim-status");
@@ -24,8 +24,12 @@ import "@xterm/xterm/css/xterm.css";
   const { default: initEmscripten } = await import("./static/vim-core.js");
   const module = await initEmscripten({
     pty: slave,
-    setStatus: (s: string) => { vimStatus.innerText = s ? s : "Ready"; },
-    onExit: () => { vimStatus.innerText = "Terminated"; },
+    setStatus: (s: string) => {
+      vimStatus.innerText = s ? s : "Ready";
+    },
+    onExit: () => {
+      vimStatus.innerText = "Terminated";
+    },
   });
 
   const links = new Map();
@@ -60,7 +64,9 @@ const entry = (id: string, loadJS: () => Promise<any>, { fit = true } = {}) => {
   if (!div) return;
   const status = document.getElementById(id + "-status");
   if (!status) return;
-  const button = document.getElementById(id + "-run") as HTMLButtonElement | null;
+  const button = document.getElementById(
+    id + "-run",
+  ) as HTMLButtonElement | null;
   if (!button) return;
 
   const xterm = new Terminal();
@@ -83,7 +89,9 @@ const entry = (id: string, loadJS: () => Promise<any>, { fit = true } = {}) => {
     const { default: initEmscripten } = await loadJS();
     await initEmscripten({
       pty: slave,
-      setStatus: (s: string) => { status.innerText = s ? s : "Ready"; },
+      setStatus: (s: string) => {
+        status.innerText = s ? s : "Ready";
+      },
       onExit: () => {
         button.disabled = false;
         status.innerText = "Terminated";

@@ -1,16 +1,16 @@
 {
-    "compilerOptions": {
-        "allowJs": true,
-        "noImplicitAny": true,
-        "module": "esnext",
-        "target": "es2020",
-        "strict": true,
-        "moduleResolution": "bundler",
-        "esModuleInterop": true,
-        "declaration": true,
-        "sourceMap": true,
-        "outDir": "./out/",
-        "types": ["vite/client"],
-    },
-    "include": ["./static/*-core.js", "app.ts"]
+  "compilerOptions": {
+    "allowJs": true,
+    "noImplicitAny": true,
+    "module": "esnext",
+    "target": "es2020",
+    "strict": true,
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./out/",
+    "types": ["vite/client"]
+  },
+  "include": ["./static/*-core.js", "app.ts"]
 }
