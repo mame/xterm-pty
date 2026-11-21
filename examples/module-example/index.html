@@ -8,10 +8,7 @@
 <body>
 	<div id="terminal"></div>
 	<script type="module">
-		// Xterm.js 5.5.0 does not support esm yet.
-		// https://github.com/xtermjs/xterm.js/pull/5092
-		// import { Terminal } from 'https://unpkg.com/@xterm/xterm/lib/xterm.mjs';
-		import 'https://unpkg.com/@xterm/xterm/lib/xterm.js';
+		import { Terminal } from 'https://unpkg.com/@xterm/xterm/lib/xterm.mjs';
 		import { openpty } from 'https://unpkg.com/xterm-pty/index.mjs';
 		import initEmscripten from './hello.mjs';
 
