@@ -23,6 +23,7 @@
     "test-server": "node tests/server.mjs"
   },
   "files": [
+    "CHANGELOG.md",
     "emscripten-pty.js",
     "index.js",
     "index.js.map",
