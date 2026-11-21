@@ -1,5 +1,5 @@
-// Checks that poll(2) and select(2) on the PTY wake up as soon as the PTY
-// becomes readable, and that a signal handler interrupts them.
+// Checks that poll(2) and select(2) on the PTY honor their timeout, return
+// as soon as the PTY is ready, and are interrupted by a signal handler.
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
@@ -62,6 +62,18 @@ int main(void) {
     char c;
     long t0, elapsed;
     int ret;
+
+    // Without input, the wait should end at the timeout.
+    t0 = now_ms();
+    ret = wait_for(use_select, 0, 0, 300);
+    elapsed = now_ms() - t0;
+    report(kind, "timeout", ret == 0 && elapsed >= 250 && elapsed < 3000, ret, elapsed);
+
+    // The PTY is writable, so waiting only for that should not block.
+    t0 = now_ms();
+    ret = wait_for(use_select, 1, 1, 10000);
+    elapsed = now_ms() - t0;
+    report(kind, "writable", ret == 1 && elapsed < 5000, ret, elapsed);
 
     // The wait should end as soon as a key arrives, not at the timeout.
     printf("%s-readable: press a key\n", kind);
