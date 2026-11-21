@@ -11,6 +11,7 @@ export default defineConfig({
         {
           src: "static/{_headers,*.wasm,*.data}",
           dest: ".",
+          rename: { stripBase: true },
         },
       ],
     }),
