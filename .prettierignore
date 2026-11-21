@@ -1,0 +1,12 @@
+# Uses Emscripten's preprocessor (#if) and {{{ }}} macros.
+emscripten-pty.js
+
+package-lock.json
+
+# Build outputs listed in .gitignore files of subdirectories, which Prettier
+# does not read.
+/demo/build/
+/demo/dist/
+/demo/static/
+/examples/vite-example/dist/
+/examples/vite-example/src/hello.mjs

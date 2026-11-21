@@ -20,7 +20,7 @@ Use `slave.write` and `slave.onReadable` instead of `Terminal.write` and `Termin
 ```js
 // Start an xterm.js instance
 const xterm = new Terminal();
-xterm.open(document.getElementById('terminal'));
+xterm.open(document.getElementById("terminal"));
 
 // Create master/slave objects
 const { master, slave } = openpty();

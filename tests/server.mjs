@@ -12,21 +12,29 @@ http
   .createServer(function (request, response) {
     console.log("request ", request.url);
 
-    response.setHeader("Cross-Origin-Opener-Policy", "same-origin")
-    response.setHeader("Cross-Origin-Embedder-Policy", "require-corp")
+    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
 
     if (request.url === "/") {
       response.writeHead(200, { "Content-Type": "text/html" });
-      const htmls = fs.readdirSync(basedir).flatMap((dir) => {
-        if (!fs.lstatSync(path.join(basedir, dir)).isDirectory()) return [];
-        return fs.readdirSync(path.join(basedir, dir)).map((file) => path.join(dir, file));
-      }).filter((file) => path.extname(file) === ".html");
+      const htmls = fs
+        .readdirSync(basedir)
+        .flatMap((dir) => {
+          if (!fs.lstatSync(path.join(basedir, dir)).isDirectory()) return [];
+          return fs
+            .readdirSync(path.join(basedir, dir))
+            .map((file) => path.join(dir, file));
+        })
+        .filter((file) => path.extname(file) === ".html");
 
       const title = "xterm-pty examples (for test)";
       const head = `<head><title>${title}</title></head>`;
-      const contents = htmls.length === 0 ? "No examples found" : htmls.map(
-        (file) => `<li><a href="${file}">${file}</a></li>`,
-      ).join("");
+      const contents =
+        htmls.length === 0
+          ? "No examples found"
+          : htmls
+              .map((file) => `<li><a href="${file}">${file}</a></li>`)
+              .join("");
       const body = `<body><h1>${title}</h1><ul>${contents}</ul></body>`;
       response.end(`<!DOCTYPE html><html>${head}${body}</html>`, "utf-8");
       return;
@@ -35,7 +43,9 @@ http
     const filePath0 = request.url.startsWith("/root/")
       ? path.join(path.dirname(basedir), request.url.substring(6))
       : path.join(basedir, request.url);
-    const filePath = filePath0.endsWith("/") ? filePath0 + "index.html" : filePath0;
+    const filePath = filePath0.endsWith("/")
+      ? filePath0 + "index.html"
+      : filePath0;
 
     var extname = String(path.extname(filePath)).toLowerCase();
     var mimeTypes = {

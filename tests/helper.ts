@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page } from "@playwright/test";
 
 export async function inputKey(page: Page, key: string) {
   const input = page.locator("#terminal textarea");
@@ -7,6 +7,6 @@ export async function inputKey(page: Page, key: string) {
 export async function expectLines(page: Page, lines: (string | RegExp)[]) {
   const output = await page.locator(`#terminal .xterm-rows > div`).all();
   for (let i = 0; i < output.length; i++) {
-	await expect(output[i]).toHaveText(lines[i] || "");
+    await expect(output[i]).toHaveText(lines[i] || "");
   }
 }
