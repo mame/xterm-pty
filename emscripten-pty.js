@@ -47,11 +47,11 @@ function ifPThread(name, implPThread, implMainThread) {
 // Rename fd_read and its config to internal $xterm_pty_old_fd_read - we're going to wrap it.
 renameFuncKeys('fd_read', '$xterm_pty_old_fd_read');
 
-// Newer Emscripten provides async __syscall_poll / __syscall__newselect that
-// call stream_ops.poll with a notify callback (3rd argument). When that's
-// the case, we don't need to wrap them ourselves and can drive the wait via
-// the callback in stream_ops.poll. Older Emscripten has only a synchronous
-// poll/select that we still need to wrap with PTY_wrapPoll.
+// Newer Emscripten provides an async __syscall_poll (select is also
+// implemented with it), which can wait for stream_ops.poll to notify it.
+// Emscripten 5.x passes a notify callback to stream_ops.poll (3rd argument).
+// Older Emscripten has only a synchronous poll/select that we still need to
+// wrap with PTY_wrapPoll.
 // Newer Emscripten (5.0+) uses __async: 'auto' instead of __async: true,
 // so accept any truthy value here.
 const hasAsyncPoll = !!Lib['__syscall_poll__async'];
@@ -67,10 +67,9 @@ if (!hasAsyncPoll) {
     renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
 }
 
-if (hasPollWaitQueue) {
-    // Emscripten 6.0+: wrap __syscall_poll (select is also implemented with
-    // it) to make a signal handler interrupt it with EINTR. The wrapper takes
-    // over the metadata, and the original becomes a plain internal function.
+if (hasAsyncPoll) {
+    // Wrap __syscall_poll to make a signal handler interrupt it with EINTR.
+    // The wrapper takes over the metadata, and the original becomes a plain internal function.
     renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
     // Renaming marks it as a user library symbol, which makes Emscripten warn
     // that it depends on internal symbols ($doPollSync etc.). It is still
@@ -338,7 +337,7 @@ if (!hasAsyncPoll) {
     });
 }
 
-if (hasPollWaitQueue) {
+if (hasAsyncPoll) {
     Object.assign(Lib, {
         // The FS nodes of the PTY that poll/select may wait on.
         $PTY_pollNodes: 'new Set()',
@@ -375,7 +374,7 @@ if (hasPollWaitQueue) {
         // True while poll/select calls are being interrupted by a signal.
         $PTY_pollInterrupting: false,
 
-        __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_pollNodes', '$PTY_pollWaiting', '$FS'],
+        __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_beforePoll', '$PTY_pollNodes', '$PTY_pollWaiting', '$FS'],
         __syscall_poll: (fds, nfds, timeout) => {
             // The original takes `sync` as an extra argument since
             // Emscripten 7.0: whether it must complete synchronously.
@@ -386,6 +385,7 @@ if (hasPollWaitQueue) {
 #else
             var sync = true;
 #endif
+            PTY_beforePoll(fds, nfds);
             var result = xterm_pty_old_poll(fds, nfds, timeout, sync);
             if (!(result instanceof Promise)) return result;
             PTY_pollWaiting++;
@@ -403,6 +403,25 @@ if (hasPollWaitQueue) {
                 return count;
             });
         },
+
+        // Emscripten 5.x: the notify callback passed to stream_ops.poll must
+        // be called with an event that the pollfd requests, but
+        // stream_ops.poll cannot see the pollfd. So the events requested for
+        // the PTY are queued here before the original __syscall_poll calls
+        // stream_ops.poll for each pollfd in order.
+        $PTY_pollEvents: '[]',
+
+        $PTY_beforePoll__deps: ['$PTY_pollEvents', '$FS'],
+        $PTY_beforePoll: hasPollWaitQueue ? () => {} : (fds, nfds) => {
+            PTY_pollEvents.length = 0;
+            for (var i = 0; i < nfds; i++) {
+                var pollfd = fds + {{{ C_STRUCTS.pollfd.__size__ }}} * i;
+                var stream = FS.getStream({{{ makeGetValue('pollfd', C_STRUCTS.pollfd.fd, 'i32') }}});
+                if (stream?.tty) {
+                    PTY_pollEvents.push({{{ makeGetValue('pollfd', C_STRUCTS.pollfd.events, 'i16') }}});
+                }
+            }
+        },
     });
 }
 
@@ -412,6 +431,8 @@ if (Lib.$TTY__deps) {
     Lib.$TTY__deps.push('$PTY', '$PTY_askToWaitAgain');
     if (hasPollWaitQueue) {
         Lib.$TTY__deps.push('$PTY_watchNodeForPoll', '$PTY_pollInterrupting');
+    } else if (hasAsyncPoll) {
+        Lib.$TTY__deps.push('$PTY_pollNodes', '$PTY_pollEvents', '$PTY_sighandlerCalled');
     }
     if (!hasAsyncPoll) {
         Lib.$TTY__deps.push('$PTY_polled');
@@ -496,20 +517,27 @@ Object.assign(Lib.$TTY.stream_ops, {
         }
         : hasAsyncPoll
         ? (stream, timeout, notifyCallback) => {
+            // Emscripten 5.x: the caller passes a notifyCallback when it
+            // wants to wait. Call it when the PTY becomes ready for the
+            // requested events, or with POLLERR when a signal handler is
+            // called (the wrapper of __syscall_poll turns it into EINTR).
+            var events = PTY_pollEvents.shift() ?? ({{{ cDefs.POLLIN }}} | {{{ cDefs.POLLOUT }}});
+            PTY_pollNodes.add(stream.node);
             var flags = (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
-            // Emscripten 5.x async poll API: register a callback for when
-            // the PTY becomes readable. The caller passes a notifyCallback
-            // when it actually wants to wait; otherwise we just return the
-            // current status.
-            if (notifyCallback && !(flags & {{{ cDefs.POLLIN }}})) {
-                var handler = PTY.onReadable(() => {
-                    handler.dispose();
-                    notifyCallback(
-                        (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) |
-                        (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0)
-                    );
-                });
-                notifyCallback.registerCleanupFunc(() => handler.dispose());
+            if (notifyCallback && !(flags & events)) {
+                var handlers = [];
+                if (events & {{{ cDefs.POLLIN }}}) {
+                    handlers.push(PTY.onReadable(() => notifyCallback({{{ cDefs.POLLIN }}})));
+                }
+                if (events & {{{ cDefs.POLLOUT }}}) {
+                    handlers.push(PTY.onWritable(() => notifyCallback({{{ cDefs.POLLOUT }}})));
+                }
+                handlers.push(PTY.onSignal(() => {
+                    if (!PTY_sighandlerCalled) return;
+                    PTY_sighandlerCalled = false;
+                    notifyCallback({{{ cDefs.POLLERR }}});
+                }));
+                notifyCallback.registerCleanupFunc(() => handlers.forEach((h) => h.dispose()));
             }
             return flags;
         }

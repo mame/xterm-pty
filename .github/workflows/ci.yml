@@ -25,6 +25,7 @@ jobs:
       matrix:
         include:
           - emscripten: latest
+          - emscripten: 5.0.5
           - emscripten: 3.1.69
           # xterm-pty supports both xterm.js 5 and 6; the others use 6.
           - emscripten: latest
