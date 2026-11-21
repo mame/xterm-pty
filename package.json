@@ -41,8 +41,8 @@
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.6.2",
-    "tsup": "^8.5.0",
-    "typescript": "^5.8.3",
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.73.0",
     "vitest": "^3.2.4"
   },
