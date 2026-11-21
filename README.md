@@ -155,7 +155,7 @@ Currently, Emscripten integration library patches the Emscripten runtime functio
 - `fd_read` to pause on reads from the file descriptor 0
 - TTY write to stdout and stderr to redirect the output to the terminal
 - `ioctl_*` for TCGETS (getting termios), TCSETS and families (setting termios), and TIOCGWINSZ (gettins window size)
-- `poll` and `newselect` syscalls to pause while waiting for stdin to become readable
+- `poll` and `newselect` syscalls (or, on Emscripten with async poll support, the TTY's poll operation) to pause while waiting for the terminal to become readable or writable, honoring their timeout
 
 It also sends terminal signals to the Emscripten'd application so that Ctrl+C for termination or terminal resizing should work as expected.
 
