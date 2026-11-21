@@ -12,10 +12,10 @@
         "xterm-pty": "file:.."
     },
     "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^8.19.0",
-        "eslint": "^9.17.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-prettier": "^5.2.1",
+        "@typescript-eslint/eslint-plugin": "^8.73.0",
+        "eslint": "^10.15.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.7",
         "prettier": "^3.4.2",
         "process": "^0.11.10",
         "typescript": "^5.7.2",
