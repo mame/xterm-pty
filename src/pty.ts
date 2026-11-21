@@ -115,8 +115,11 @@ export class Slave {
 
     this.ldisc.onFlowActivated(() => {
       if (this.fromUpperToLdiscBuffer.length >= 1) {
-        this.ldisc.writeFromUpper(this.fromUpperToLdiscBuffer);
-        this.fromUpperToLdiscBuffer.length = 0;
+        // Empty the buffer before passing it on: writeFromUpper may notify
+        // writability synchronously, and `writable` must be true by then.
+        const buf = this.fromUpperToLdiscBuffer;
+        this.fromUpperToLdiscBuffer = [];
+        this.ldisc.writeFromUpper(buf);
       }
     });
 
