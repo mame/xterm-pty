@@ -67,6 +67,23 @@ if (!hasAsyncPoll) {
     renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
 }
 
+if (hasPollWaitQueue) {
+    // Emscripten 6.0+: wrap __syscall_poll (select is also implemented with
+    // it) to make a signal handler interrupt it with EINTR. The wrapper takes
+    // over the metadata, and the original becomes a plain internal function.
+    renameFuncKeys('__syscall_poll', '$xterm_pty_old_poll');
+    // Renaming marks it as a user library symbol, which makes Emscripten warn
+    // that it depends on internal symbols ($doPollSync etc.). It is still
+    // Emscripten's own function, so unmark it.
+    delete Lib['$xterm_pty_old_poll__user'];
+    for (const key of ['__proxy', '__async', '__sig', '__i53abi']) {
+        if (Lib['$xterm_pty_old_poll' + key] !== undefined) {
+            Lib['__syscall_poll' + key] = Lib['$xterm_pty_old_poll' + key];
+            delete Lib['$xterm_pty_old_poll' + key];
+        }
+    }
+}
+
 // Remove FS_stdin_getChar, its config and buffer altogether - we're going to implement higher-level bulk reading.
 deleteFuncKeys('$FS_stdin_getChar');
 deleteFuncKeys('$FS_stdin_getChar_buffer');
@@ -284,11 +301,59 @@ if (hasPollWaitQueue) {
         // until the timeout expires even if input arrives. The handler is
         // registered once per node and kept: when nobody is waiting,
         // notifyListeners is a no-op.
-        $PTY_watchNodeForPoll__deps: ['$PTY', '$PTY_pollNodes'],
+        $PTY_watchNodeForPoll__deps: ['$PTY', '$PTY_pollNodes', '$PTY_pollWaiting', '$PTY_pollInterrupting', '$PTY_sighandlerCalled'],
         $PTY_watchNodeForPoll: (node) => {
             if (PTY_pollNodes.has(node)) return;
+            if (!PTY_pollNodes.size) {
+                // When a signal handler is called while poll/select is
+                // waiting, end the wait by making the PTY report POLLERR
+                // during the notification. The wrapper of __syscall_poll
+                // turns it into EINTR.
+                PTY.onSignal(() => {
+                    if (!PTY_pollWaiting || !PTY_sighandlerCalled) return;
+                    PTY_sighandlerCalled = false;
+                    PTY_pollInterrupting = true;
+                    for (const n of PTY_pollNodes) n.notifyListeners({{{ cDefs.POLLERR }}});
+                    PTY_pollInterrupting = false;
+                });
+            }
             PTY_pollNodes.add(node);
             PTY.onReadable(() => node.notifyListeners({{{ cDefs.POLLIN }}}));
+        },
+
+        // The number of poll/select calls that are waiting.
+        $PTY_pollWaiting: 0,
+
+        // True while poll/select calls are being interrupted by a signal.
+        $PTY_pollInterrupting: false,
+
+        __syscall_poll__deps: ['$xterm_pty_old_poll', '$PTY_pollNodes', '$PTY_pollWaiting', '$FS'],
+        __syscall_poll: (fds, nfds, timeout) => {
+            // The original takes `sync` as an extra argument since
+            // Emscripten 7.0: whether it must complete synchronously.
+#if ASYNCIFY
+            var sync = false;
+#elif PTHREADS
+            var sync = !PThread.currentProxiedOperationCallerThread;
+#else
+            var sync = true;
+#endif
+            var result = xterm_pty_old_poll(fds, nfds, timeout, sync);
+            if (!(result instanceof Promise)) return result;
+            PTY_pollWaiting++;
+            return result.then((count) => {
+                PTY_pollWaiting--;
+                // The PTY reports POLLERR only when interrupted by a signal.
+                for (var i = 0; i < nfds; i++) {
+                    var pollfd = fds + {{{ C_STRUCTS.pollfd.__size__ }}} * i;
+                    var revents = {{{ makeGetValue('pollfd', C_STRUCTS.pollfd.revents, 'i16') }}};
+                    var stream = FS.getStream({{{ makeGetValue('pollfd', C_STRUCTS.pollfd.fd, 'i32') }}});
+                    if ((revents & {{{ cDefs.POLLERR }}}) && stream && PTY_pollNodes.has(stream.node)) {
+                        return -{{{ cDefs.EINTR }}};
+                    }
+                }
+                return count;
+            });
         },
     });
 }
@@ -298,7 +363,7 @@ if (hasPollWaitQueue) {
 if (Lib.$TTY__deps) {
     Lib.$TTY__deps.push('$PTY', '$PTY_askToWaitAgain');
     if (hasPollWaitQueue) {
-        Lib.$TTY__deps.push('$PTY_watchNodeForPoll');
+        Lib.$TTY__deps.push('$PTY_watchNodeForPoll', '$PTY_pollInterrupting');
     }
 }
 
@@ -375,6 +440,7 @@ Object.assign(Lib.$TTY.stream_ops, {
             // Emscripten 6.0+: a waiting poll/select waits on the node's
             // wait-queue, so we just have to notify it (see above).
             PTY_watchNodeForPoll(stream.node);
+            if (PTY_pollInterrupting) return {{{ cDefs.POLLERR }}};
             return (PTY.readable ? {{{ cDefs.POLLIN }}} : 0) | (PTY.writable ? {{{ cDefs.POLLOUT }}} : 0);
         }
         : hasAsyncPoll
