@@ -475,7 +475,11 @@ export class LineDiscipline {
       }
     }
 
-    if (!this.T.ICANON_P) {
+    // In the non-canonical mode, there is no EOF to deliver, so flush only
+    // when there is something to deliver. Otherwise keys that deliver
+    // nothing (e.g. C-s and C-q with IXON) would make the upper side look
+    // readable with no data, which a blocking read takes as EOF.
+    if (!this.T.ICANON_P && this.toUpperBuf.length >= 1) {
       this.flushToUpper();
     }
   }
