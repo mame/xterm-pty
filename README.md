@@ -159,7 +159,7 @@ Currently, Emscripten integration library patches the Emscripten runtime functio
 
 It also sends terminal signals to the Emscripten'd application so that Ctrl+C for termination or terminal resizing should work as expected.
 
-The integration hack highly depends on the internal implementation of the Emscripten runtime. It's confirmed to work with Emscripten 3.1.69, 6.0.5, and 7.0.0. CI tests it with the latest version and 3.1.69.
+The integration hack highly depends on the internal implementation of the Emscripten runtime. It's confirmed to work with Emscripten 3.1.69, 5.0.5, 6.0.5, and 7.0.0. CI tests it with the latest version, 5.0.5, and 3.1.69.
 
 ## Typical data flow
 
