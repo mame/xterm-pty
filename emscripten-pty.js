@@ -131,16 +131,19 @@ Object.assign(Lib, {
         throw new FS.ErrnoError({{{ 1000 + cDefs.EAGAIN }}});
     },
 
-    // Waits until the PTY becomes readable, a signal handler is called, or
-    // `timeout` ms elapse (negative: forever).
+    // Waits until the PTY becomes readable (or writable, if `wantWritable`),
+    // a signal handler is called, or `timeout` ms elapse (negative: forever).
     $PTY_waitWithCallback__deps: ['$PTY', '$PTY_sighandlerCalled'],
-    $PTY_waitWithCallback: (callback, timeout) => {
+    $PTY_waitWithCallback: (callback, timeout, wantWritable) => {
         if (timeout === 0) {
             return callback(PTY.readable ? 0 /* ready */ : 2 /* timeout */);
         }
-        let handlerReadable, handlerSignal, timeoutId;
+        let handlerReadable, handlerWritable, handlerSignal, timeoutId;
         new Promise((resolve) => {
             handlerReadable = PTY.onReadable(() => resolve(0 /* ready */));
+            if (wantWritable) {
+                handlerWritable = PTY.onWritable(() => resolve(0 /* ready */));
+            }
 
             handlerSignal = PTY.onSignal((signalName) => {
                 const interrupt = PTY_sighandlerCalled;
@@ -160,6 +163,7 @@ Object.assign(Lib, {
         })
         .then(type => {
             handlerReadable.dispose();
+            handlerWritable?.dispose();
             handlerSignal.dispose();
             // note: it's fine to call even with undefined timeoutId
             clearTimeout(timeoutId);
@@ -175,23 +179,23 @@ Object.assign(Lib, {
     },
 
     $PTY_waitWithAtomicImpl__deps: ['$PTY_waitWithCallback'],
-    $PTY_waitWithAtomicImpl: (atomicIndex, timeout) => {
+    $PTY_waitWithAtomicImpl: (atomicIndex, timeout, wantWritable) => {
         PTY_waitWithCallback(type => {
             Atomics.store(HEAP32, atomicIndex, type);
             Atomics.notify(HEAP32, atomicIndex);
-        }, timeout);
+        }, timeout, wantWritable);
     },
     $PTY_waitWithAtomicImpl__proxy: 'async',
 
     $PTY_atomicIndex: 0,
 
     $PTY_waitWithAtomic__deps: ['$PTY_waitWithAtomicImpl', '$PTY_atomicIndex', 'malloc'],
-    $PTY_waitWithAtomic: (callback, timeout) => {
+    $PTY_waitWithAtomic: (callback, timeout, wantWritable) => {
         if (!PTY_atomicIndex) {
             PTY_atomicIndex = _malloc(4) >> 2;
         }
         HEAP32[PTY_atomicIndex] = -1;
-        PTY_waitWithAtomicImpl(PTY_atomicIndex, timeout);
+        PTY_waitWithAtomicImpl(PTY_atomicIndex, timeout, wantWritable ? 1 : 0);
         Atomics.wait(HEAP32, PTY_atomicIndex, -1);
         callback(HEAP32[PTY_atomicIndex]);
     },
@@ -236,7 +240,7 @@ Object.assign(Lib, {
                         wakeUp(0);
                         break;
                 }
-            }, -1 /* no timeout */);
+            }, -1 /* no timeout */, false);
         } else {
             wakeUp(result);
         }
@@ -285,7 +289,7 @@ if (!hasAsyncPoll) {
                 if (remaining === 0) {
                     return wakeUp(0);
                 }
-                // Wait for the PTY to become readable and try again.
+                // Wait for the PTY to become readable or writable and try again.
                 PTY_wait(type => {
                     switch (type) {
                         case 0: /* ready */
@@ -298,7 +302,7 @@ if (!hasAsyncPoll) {
                             wakeUp(0);
                             break;
                     }
-                }, remaining);
+                }, remaining, true);
             };
             attempt();
         }),
@@ -340,10 +344,10 @@ if (hasPollWaitQueue) {
         $PTY_pollNodes: 'new Set()',
 
         // Make sure that the wait-queue of the node is notified whenever the
-        // PTY becomes readable; otherwise a poll/select with a timeout sleeps
-        // until the timeout expires even if input arrives. The handler is
-        // registered once per node and kept: when nobody is waiting,
-        // notifyListeners is a no-op.
+        // PTY becomes readable or writable; otherwise a poll/select with a
+        // timeout sleeps until the timeout expires even if input arrives.
+        // The handlers are registered once per node and kept: when nobody is
+        // waiting, notifyListeners is a no-op.
         $PTY_watchNodeForPoll__deps: ['$PTY', '$PTY_pollNodes', '$PTY_pollWaiting', '$PTY_pollInterrupting', '$PTY_sighandlerCalled'],
         $PTY_watchNodeForPoll: (node) => {
             if (PTY_pollNodes.has(node)) return;
@@ -362,6 +366,7 @@ if (hasPollWaitQueue) {
             }
             PTY_pollNodes.add(node);
             PTY.onReadable(() => node.notifyListeners({{{ cDefs.POLLIN }}}));
+            PTY.onWritable(() => node.notifyListeners({{{ cDefs.POLLOUT }}}));
         },
 
         // The number of poll/select calls that are waiting.

@@ -1,5 +1,6 @@
 // Checks that poll(2) and select(2) on the PTY honor their timeout, return
-// as soon as the PTY is ready, and are interrupted by a signal handler.
+// as soon as the PTY becomes readable or writable, and are interrupted by a
+// signal handler.
 #include <errno.h>
 #include <poll.h>
 #include <signal.h>
@@ -29,6 +30,17 @@ static int wait_for(int use_select, int fd, int for_write, int timeout_ms) {
   }
 }
 
+static void set_icanon(int on) {
+  struct termios t;
+  tcgetattr(0, &t);
+  if (on) {
+    t.c_lflag |= ICANON;
+  } else {
+    t.c_lflag &= ~ICANON;
+  }
+  tcsetattr(0, TCSANOW, &t);
+}
+
 static char results[1024];
 
 static void report(const char *kind, const char *name, int ok, int ret, long elapsed) {
@@ -53,6 +65,7 @@ int main(void) {
   struct termios t;
   tcgetattr(0, &t);
   t.c_lflag &= ~(ICANON | ECHO);
+  t.c_iflag |= IXON;
   tcsetattr(0, TCSANOW, &t);
 
   printf("Poll test start\n");
@@ -93,6 +106,25 @@ int main(void) {
     int err = errno;
     elapsed = now_ms() - t0;
     report(kind, "interrupted", ret == -1 && err == EINTR && sigint_received && elapsed < 5000, ret, elapsed);
+
+    // Stop the output with C-s, fill the PTY's output buffer, and wait for it
+    // to become writable. The wait should end as soon as C-q resumes output.
+    // (In the canonical mode, C-q does not make the PTY readable, so only the
+    // writability can wake up the wait.)
+    set_icanon(1);
+    printf("%s-resumed: press C-s, Enter, and then C-q\n", kind);
+    fflush(stdout);
+    do {
+      if (read(0, &c, 1) != 1) break;
+    } while (c != '\n');
+    char buf[8192];
+    memset(buf, ' ', sizeof(buf));
+    write(1, buf, sizeof(buf));
+    t0 = now_ms();
+    ret = wait_for(use_select, 1, 1, 10000);
+    elapsed = now_ms() - t0;
+    report(kind, "resumed", ret == 1 && elapsed < 5000, ret, elapsed);
+    set_icanon(0);
   }
 
   printf("\033[2J\033[H%sPoll test end\n", results);
